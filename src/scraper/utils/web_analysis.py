@@ -7,7 +7,7 @@ import logging
 import requests # Aggiunto: necessario per fare la richiesta HTTP
 from typing import Dict, Any, List # Aggiunto: per type hinting
 
-
+# Chiamato da Crawler per rilevare tecnologie usate dal sito
 def detect_framework(soup:BeautifulSoup, headers:dict, html_content:str, url:str) -> list | str:
     '''
     Funzione: detect_framework
@@ -59,7 +59,7 @@ def detect_framework(soup:BeautifulSoup, headers:dict, html_content:str, url:str
         return list(set(detected)) # Rimuovi duplicati
     return "Unknown"
 
-
+# Chiamato da Crawler per rilevare librerie JS usate dal sito
 def detect_js_libraries(soup: BeautifulSoup, html_content: str) -> list:
     '''
     Funzione: detect_js_libraries
@@ -105,8 +105,7 @@ def detect_js_libraries(soup: BeautifulSoup, html_content: str) -> list:
 
     return list(libraries) if libraries else []
 
-# Nota: check_security_headers è duplicata. La versione corretta dovrebbe stare solo qui.
-# Rimuovi la versione da validators.py e assicurati che questa sia quella usata.
+# Chiamato da Crawler per controllare header di sicurezza
 def check_security_headers(headers: dict) -> dict:
     '''
     Funzione: check_security_headers
@@ -135,7 +134,7 @@ def check_security_headers(headers: dict) -> dict:
 
     return security_headers_found
 
-
+# Chiamato da Crawler per rilevare servizi di analytics usati dal sito
 def detect_analytics(html_content: str) -> list:
     '''
     Funzione: detect_analytics
@@ -171,6 +170,8 @@ def detect_analytics(html_content: str) -> list:
 
 
 # === FUNZIONE CONSOLIDATA PER IL RILEVAMENTO TECNOLOGIE ===
+
+# Chiamato da Crawler per rilevare tecnologie usate dal sito
 def detect_technologies(domain: str, logger: logging.Logger) -> Dict[str, Any]:
     '''
     Funzione: detect_technologies

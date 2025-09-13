@@ -14,6 +14,8 @@ class RobotsRule:
     is_sensitive: bool = False
 
 @dataclass
+
+# Chiamato da Crawler per analizzare robots.txt
 class RobotsData:
     '''
     Funzione: RobotsData

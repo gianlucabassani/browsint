@@ -31,9 +31,9 @@ def fetch_wayback_snapshots(url: str, limit: int = 5) -> Dict [str, Any]:
     try:
         logger.debug(f"Fetching Wayback Machine snapshots for URL: {url} with limit {limit}")
         print(f"Cercando snapshot per {url} con limite {limit}...")  # Per debug
-        cdx_api = WaybackMachineCDXServerAPI(url, user_agent= "Browsint BETA")
+        cdx_api = WaybackMachineCDXServerAPI(url, user_agent= "Browsint Research Bot")
         cdx_api.limit = limit  # Imposta il limite di snapshot da recuperare
-        snapshots = cdx_api.snapshots()
+        snapshots = cdx_api.snapshots() 
 
         if not snapshots:
             logger.info(f"No snapshots found for {url}.")

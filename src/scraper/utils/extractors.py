@@ -7,6 +7,7 @@ from typing import Set
 
 logger = logging.getLogger("osint.extractors")
 
+# Chiamato da OSINTExtractor per estrarre email
 def extract_emails(text: str) -> set:
     '''
     Funzione: _extract_emails
@@ -198,6 +199,7 @@ def filter_emails(emails: Set[str], domain: str, logger: logging.Logger, keep_se
 
     return filtered_emails
 
+# Chiamato da OSINTExtractor per estrarre numeri di telefono
 def extract_phone_numbers(text: str) -> set[str]:
     '''
     Estrae potenziali numeri di telefono da una stringa di testo.

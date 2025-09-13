@@ -49,11 +49,11 @@ class DatabaseManager:
             DatabaseManager -> L'istanza unica del DatabaseManager
         '''
         if cls._instance is None:
-            cls._instance = cls(db_path)
-        elif db_path and cls._instance.databases["websites"] != db_path:
-            cls._instance.databases["websites"] = db_path  
-            logger.info(f"Percorso database aggiornato a {db_path}")
-        return cls._instance 
+            cls._instance = cls(db_path) # Crea una nuova istanza se non esiste
+        elif db_path and cls._instance.databases["websites"] != db_path: # Se esiste già un'istanza ma il percorso è diverso
+            cls._instance.databases["websites"] = db_path # Aggiorna il percorso del database principale
+            logger.info(f"Percorso database aggiornato a {db_path}") 
+        return cls._instance # Restituisce l'istanza esistente 
 
     def __init__(self, db_path: str | None = None) -> None:
         '''
@@ -105,7 +105,7 @@ class DatabaseManager:
             logger.debug(f"Connessione a {db_name} in {db_path}")
 
             connection = sqlite3.connect(
-                db_path, timeout=10.0, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES
+                db_path, timeout=10.0, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES 
             )
             connection.execute("PRAGMA journal_mode=WAL")
             connection.execute("PRAGMA foreign_keys=ON")
@@ -174,11 +174,11 @@ class DatabaseManager:
         Valore di ritorno:
             bool -> True se l'inizializzazione degli schemi ha successo, False altrimenti
         '''
-        db_names = [db_name] if db_name else self.databases.keys()
+        db_names = [db_name] if db_name else self.databases.keys() # estraggo i nomi dei database
         success = True
 
         for name in db_names:
-            if f"{name}_schema" in self.initialized_tables:
+            if f"{name}_schema" in self.initialized_tables: 
                 logger.debug(f"Schema {name} già inizializzato")
                 continue
 

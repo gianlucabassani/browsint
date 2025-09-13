@@ -1,5 +1,30 @@
 # Contiene funzioni per formattare i dati per la presentazione (es. report HTML)
 
+try:
+    from reportlab.lib.pagesizes import letter, A4
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import inch
+    from reportlab.lib.colors import HexColor, black, white
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+    from reportlab.platypus.frames import Frame
+    from reportlab.platypus.doctemplate import BaseDocTemplate, PageTemplate
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
+    from io import BytesIO
+    import html
+    REPORTLAB_AVAILABLE = True
+except ImportError:
+    REPORTLAB_AVAILABLE = False
+    print("Warning: ReportLab not available. PDF generation will be disabled.")
+    print("Install it with: pip install reportlab")
+
+try:
+    import pdfkit
+    PDFKIT_AVAILABLE = True
+except ImportError:
+    PDFKIT_AVAILABLE = False
+    print("Warning: pdfkit not available. HTML-to-PDF conversion will be disabled.")
+    print("Install it with: pip install pdfkit && sudo apt install wkhtmltopdf")
+
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 from colorama import Fore, Style
@@ -66,33 +91,6 @@ def generate_html_report(profile: dict) -> str:
 </html>
 """
     return html
-
-# Aggiungere queste importazioni all'inizio del file formatters.py
-try:
-    from reportlab.lib.pagesizes import letter, A4
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.units import inch
-    from reportlab.lib.colors import HexColor, black, white
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
-    from reportlab.platypus.frames import Frame
-    from reportlab.platypus.doctemplate import BaseDocTemplate, PageTemplate
-    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
-    from io import BytesIO
-    import html
-    import re
-    REPORTLAB_AVAILABLE = True
-except ImportError:
-    REPORTLAB_AVAILABLE = False
-    print("Warning: ReportLab not available. PDF generation will be disabled.")
-    print("Install it with: pip install reportlab")
-
-try:
-    import pdfkit
-    PDFKIT_AVAILABLE = True
-except ImportError:
-    PDFKIT_AVAILABLE = False
-    print("Warning: pdfkit not available. HTML-to-PDF conversion will be disabled.")
-    print("Install it with: pip install pdfkit && sudo apt install wkhtmltopdf")
 
 def text_report_to_html(text: str) -> str:
     """

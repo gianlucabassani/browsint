@@ -3,6 +3,7 @@
 from datetime import datetime
 from typing import Any
 
+# Chiamato da json_serial in cli/scraper_cli.py per serializzare datetime
 def standardize_for_json(item: Any) -> Any:
     """Standardizza i dati per la serializzazione JSON."""
     if isinstance(item, datetime):
@@ -13,6 +14,7 @@ def standardize_for_json(item: Any) -> Any:
         return [standardize_for_json(v) for v in item]
     return item
 
+# Chiamato da OSINTExtractor per strutturare i dati grezzi
 def extract_structured_fields(data: dict[str, Any], source_type: str) -> dict[str, Any]:
         '''
         Funzione: _extract_structured_fields

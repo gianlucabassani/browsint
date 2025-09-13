@@ -3,6 +3,7 @@
 import re
 from colorama import Fore, Style
 
+# Chiamato da ScraperCLI per validare domini
 def validate_domain(domain: str) -> tuple[bool, str | None]:
         '''
         Funzione: _validate_domain

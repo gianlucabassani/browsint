@@ -22,6 +22,7 @@ logger = logging.getLogger("osint.sources")
 
 # === Funzioni per Fetching Dati Dominio ===
 
+# Usato dal OSINTExtractor per raccogliere dati dominio/IP
 def fetch_domain_osint(target: str, api_keys: Dict[str, str], logger) -> dict[str, Any]:
     '''
     Funzione: fetch_domain_osint
@@ -140,6 +141,7 @@ def fetch_domain_osint(target: str, api_keys: Dict[str, str], logger) -> dict[st
 
 # === Funzioni per Fetching Dati Email ===
 
+# Usato dal OSINTExtractor per raccogliere dati email
 def fetch_email_osint(email: str, api_keys: Dict[str, str], logger) -> Dict[str, Any]:
     '''
     Funzione: fetch_email_osint
@@ -203,6 +205,7 @@ def fetch_email_osint(email: str, api_keys: Dict[str, str], logger) -> Dict[str,
 
 # === Funzioni per Social Scan Username ===
 
+# Usato dal OSINTExtractor per raccogliere dati social
 def fetch_social_osint(username: str, logger, dirs: Dict[str, Path]) -> Dict[str, Any]:
     '''
     Funzione: fetch_social_osint
@@ -302,6 +305,7 @@ def fetch_social_osint(username: str, logger, dirs: Dict[str, Path]) -> Dict[str
 
 # === Funzioni per Ricerca Profili Social di Brand/Dominio ===
 
+# Usato dal OSINTExtractor per raccogliere dati social di brand
 def find_brand_social_profiles(domain_or_brand_name: str, logger, dirs: Dict[str, Path]) -> Dict[str, Any]:
     '''
     Funzione: find_brand_social_profiles
@@ -401,6 +405,7 @@ def find_brand_social_profiles(domain_or_brand_name: str, logger, dirs: Dict[str
 
 # === Funzioni per Estrazione Contatti da Sito Web ===
 
+# Usato dal OSINTExtractor per raccogliere contatti da sito web
 def fetch_website_contacts(domain: str, ) -> Dict[str, List[str]]:
     '''
     Funzione: fetch_website_contacts
