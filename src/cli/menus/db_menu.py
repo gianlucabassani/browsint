@@ -357,9 +357,15 @@ def add_api_key(cli_instance: 'ScraperCLI') -> None:
                 print(f"{Fore.RED}✗ API key non può essere vuota.")
                 return
             
-            # Salva nel file .env
-            from dotenv import set_key
-            set_key(cli_instance.env_file, env_var, api_key)
+            # Salva nel file .env (usa wrapper centralizzato)
+            try:
+                from ...config import set_env_key
+            except Exception:
+                # fallback to dotenv directly if relative import fails
+                from dotenv import set_key as _dot_set_key
+                _dot_set_key(cli_instance.env_file, env_var, api_key)
+            else:
+                set_env_key(cli_instance.env_file, env_var, api_key)
             # Aggiorna le variabili d'ambiente
             import os
             os.environ[env_var] = api_key
@@ -403,9 +409,14 @@ def remove_api_key(cli_instance: 'ScraperCLI') -> None:
             
             confirm = prompt_for_input(f"{Fore.YELLOW}Confermi la rimozione della API key per {service_name}? (s/N): {Style.RESET_ALL}").lower()
             if confirm == 's':
-                # Rimuovi dal file .env
-                from dotenv import unset_key
-                unset_key(cli_instance.env_file, env_var) # libreria per gestire le variabili d'ambiente
+                # Rimuovi dal file .env (usa wrapper centralizzato)
+                try:
+                    from ...config import unset_env_key
+                except Exception:
+                    from dotenv import unset_key as _dot_unset_key
+                    _dot_unset_key(cli_instance.env_file, env_var)
+                else:
+                    unset_env_key(cli_instance.env_file, env_var)
                 # Rimuovi dalla variabile d'ambiente
                 import os
                 os.environ.pop(env_var, None) 

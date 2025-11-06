@@ -25,7 +25,7 @@ except ImportError:
     print("Warning: pdfkit not available. HTML-to-PDF conversion will be disabled.")
     print("Install it with: pip install pdfkit && sudo apt install wkhtmltopdf")
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from colorama import Fore, Style
 from urllib.parse import urlparse
@@ -350,12 +350,26 @@ def format_domain_osint_report(data: Dict[str, Any], target_input: str, domain_a
     domain_age = "N/A"
     if creation_date_str:
         try:
-            creation_date = datetime.fromisoformat(creation_date_str.replace('Z', '+00:00') if 'Z' in creation_date_str else creation_date_str)
-            age_delta = datetime.now() - creation_date
+            # Parse ISO-like strings or accept a datetime object
+            if isinstance(creation_date_str, str):
+                parsed = datetime.fromisoformat(creation_date_str.replace('Z', '+00:00') if 'Z' in creation_date_str else creation_date_str)
+            elif isinstance(creation_date_str, datetime):
+                parsed = creation_date_str
+            else:
+                parsed = datetime.fromisoformat(str(creation_date_str))
+
+            # Normalize to timezone-aware UTC for safe arithmetic
+            if parsed.tzinfo is None:
+                creation_date = parsed.replace(tzinfo=timezone.utc)
+            else:
+                creation_date = parsed.astimezone(timezone.utc)
+
+            now_utc = datetime.now(timezone.utc)
+            age_delta = now_utc - creation_date
             years = age_delta.days // 365
             months = (age_delta.days % 365) // 30
             domain_age = f"{TEXT_WHITE}{years} anni, {months} mesi{Style.RESET_ALL} {TEXT_WHITE}(Registrato il {creation_date.strftime('%d %b %Y')}{Style.RESET_ALL}){Style.RESET_ALL}"
-        except ValueError:
+        except Exception:
             domain_age = f"{TEXT_WHITE}Errore parsing data: {creation_date_str}{Style.RESET_ALL}"
     summary_content.append(f"{DATA_BLUE}  ▶ Età Dominio:{Style.RESET_ALL} {domain_age}")
 

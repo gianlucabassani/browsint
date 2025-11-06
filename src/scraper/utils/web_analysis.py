@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 import re
 import logging
 import requests # Aggiunto: necessario per fare la richiesta HTTP
+from .clients import _safe_get
 from typing import Dict, Any, List # Aggiunto: per type hinting
 
 # Chiamato da Crawler per rilevare tecnologie usate dal sito
@@ -193,7 +194,7 @@ def detect_technologies(domain: str, logger: logging.Logger) -> Dict[str, Any]:
     try:
         url = f"https://{domain}"
         # Utilizza requests.get direttamente qui per fare la richiesta
-        response = requests.get(
+        response = _safe_get(
             url,
             headers={
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
@@ -252,7 +253,7 @@ def detect_technologies(domain: str, logger: logging.Logger) -> Dict[str, Any]:
         try:
             url_http = f"http://{domain}"
             # Riprova con HTTP se HTTPS fallisce per errore SSL
-            response_http = requests.get(
+            response_http = _safe_get(
                 url_http, headers=response.headers if 'response' in locals() else {}, # Usa header originali se disponibili
                 timeout=10, allow_redirects=True, verify=False # verify=False per ignorare errori SSL nel fallback
             )

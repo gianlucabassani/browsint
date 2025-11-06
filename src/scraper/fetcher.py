@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, NamedTuple,  Union
 
 import requests
+from .utils.clients import _safe_get
 
 logger = logging.getLogger("scraper.fetcher")
 
@@ -189,7 +190,7 @@ class WebFetcher:
         while attempt < retries:
             try:
                 logger.info(f"Download completo {url} (tentativo {attempt+1}/{retries})")
-                response = requests.get(url, headers=self.headers, timeout=timeout, stream=True, allow_redirects=True)
+                response = _safe_get(url, headers=self.headers, timeout=timeout, allow_redirects=True)
 
                 content_bytes = response.content
 

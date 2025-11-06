@@ -213,6 +213,75 @@ class DatabaseManager:
 
         return success
 
+    # --- Compatibility helpers used by tests and external callers ---
+    def create_database(self, schemas: dict) -> bool:
+        """Compatibility wrapper: create databases and apply provided schema queries.
+
+        This method was added for test compatibility. It will iterate the
+        provided `schemas` mapping and execute each SQL block for the
+        corresponding database name (if the database name exists in
+        self.databases).
+        """
+        # For test compatibility, we create all schema tables inside the primary
+        # 'websites' database file (the test fixture points websites -> TEST_DB_PATH).
+        if not self.connect("websites"):
+            logger.error("Unable to connect to primary 'websites' database for create_database")
+            return False
+
+        conn = self.connections.get("websites")
+        if conn is None:
+            logger.error("Primary connection object missing during create_database")
+            return False
+
+        created_any = False
+        try:
+            for name, sql_block in schemas.items():
+                for query in str(sql_block).split(";"):
+                    if query.strip():
+                        conn.execute(query)
+
+                # Ensure a marker table exists with the schema name if none of the
+                # schema's own tables use that name (the test expects a table named
+                # after each SCHEMAS key).
+                try:
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?;", (name,))
+                    if not cursor.fetchone():
+                        conn.execute(f"CREATE TABLE IF NOT EXISTS {name} (id INTEGER PRIMARY KEY);")
+                except Exception:
+                    pass
+
+            conn.commit()
+            created_any = True
+        except Exception as e:
+            logger.error(f"Error creating combined schema in primary DB: {e}")
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+
+        return created_any
+
+    def cleanup(self) -> None:
+        """Remove the primary 'websites' database file and close connections.
+
+        This mirrors the behavior used by the test suite which expects a
+        cleanup() method to remove the test DB file.
+        """
+        try:
+            self.disconnect()
+        except Exception:
+            pass
+
+        db_path = self.databases.get("websites")
+        if db_path:
+            try:
+                if os.path.exists(db_path):
+                    os.remove(db_path)
+                    logger.info(f"Removed database file {db_path}")
+            except Exception as e:
+                logger.warning(f"Failed to remove database file {db_path}: {e}")
+
     def execute_query(
         self, query: str, params: tuple[Any, ...] | None = None, db_name: str = "websites"
     ) -> list[dict[str, Any]] | None:

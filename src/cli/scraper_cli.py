@@ -14,7 +14,8 @@ from colorama import Fore, Style
 from tabulate import tabulate
 import validators
 import os
-from dotenv import load_dotenv, set_key, unset_key
+from config import get_api_keys, load_env, set_env_key, unset_env_key
+from typing import Optional
 
 # Import the database manager
 from db.manager import DatabaseManager
@@ -47,27 +48,25 @@ class ScraperCLI:
         # Carichiamo le API keys dalle variabili d'ambiente e dal file .env
         self.api_keys = self._load_api_keys_from_env()
         
-        # Infine inizializziamo tutti i componenti
-        self.db_manager = DatabaseManager()
-        self.osint_extractor = OSINTExtractor(
-            api_keys=self.api_keys,
-            data_dir=self.data_dir,
-            dirs=self.dirs
-        )
-        self.web_fetcher = WebFetcher()
-        self.web_parser = WebParser()
-        self.crawler = Crawler(
-            fetcher=self.web_fetcher,
-            parser=self.web_parser,
-            db_manager=self.db_manager,
-            osint_extractor=self.osint_extractor,
-            base_dirs=self.dirs
-        )
+        # Prefer singleton getter for DB when available, otherwise fallback
+        try:
+            self.db_manager = DatabaseManager.get_instance()
+        except Exception:
+            # If manager has no get_instance, fallback to direct instantiation
+            self.db_manager = DatabaseManager()
+
+        # Delay heavy components until needed (lazy init via properties)
+        self._osint_extractor = None
+        self._web_fetcher = None
+        self._web_parser = None
+        self._crawler = None
+
         self.running = True
 
     def setup(self) -> None:
         '''Inizializza la configurazione di base delle directory e dei file.'''
-        self.base_dir = Path(__file__).parent.parent.parent
+        # use resolve() to make base_dir robust when packaged or symlinked
+        self.base_dir = Path(__file__).parent.parent.parent.resolve()
         self.env_file = self.base_dir / ".env"
         self.data_dir = self.base_dir / "data"
 
@@ -91,18 +90,16 @@ class ScraperCLI:
 
     def _load_api_keys_from_env(self) -> dict:
         '''Carica le API keys dalle variabili d'ambiente e dal file .env.'''
-
-        load_dotenv(self.env_file)
-        
-        api_keys = {
-            "hunterio": os.getenv("HUNTER_IO_API_KEY"),
-            "hibp": os.getenv("HIBP_API_KEY"),
-            "shodan": os.getenv("SHODAN_API_KEY"),
-            "whoisxml": os.getenv("WHOISXML_API_KEY"),
-            "virustotal": os.getenv("VIRUSTOTAL_API_KEY"),
-            "securitytrails": os.getenv("SECURITYTRAILS_API_KEY")
-        }
-        return {k: v for k, v in api_keys.items() if v}
+        # delegate to centralized config helper
+        try:
+            return get_api_keys(self.env_file)
+        except Exception:
+            # Fallback: attempt to load env and use helper again; return empty dict if still failing
+            try:
+                load_env(self.env_file)
+                return get_api_keys(self.env_file)
+            except Exception:
+                return {}
 
     def show_banner(self) -> None:
         '''Mostra un banner ASCII art all'avvio dell'applicazione.'''
@@ -209,8 +206,59 @@ class ScraperCLI:
                 break
             db_menu.handle_db_choice(self, choice)
     
+    # Lazy-loaded components to avoid eager heavy instantiation
+    @property
+    def osint_extractor(self) -> OSINTExtractor:
+        if self._osint_extractor is None:
+            self._osint_extractor = OSINTExtractor(
+                api_keys=self.api_keys,
+                data_dir=self.data_dir,
+                dirs=self.dirs
+            )
+        return self._osint_extractor
+
+    @osint_extractor.setter
+    def osint_extractor(self, value):
+        self._osint_extractor = value
+
+    @property
+    def web_fetcher(self) -> WebFetcher:
+        if self._web_fetcher is None:
+            self._web_fetcher = WebFetcher()
+        return self._web_fetcher
+
+    @web_fetcher.setter
+    def web_fetcher(self, value):
+        self._web_fetcher = value
+
+    @property
+    def web_parser(self) -> WebParser:
+        if self._web_parser is None:
+            self._web_parser = WebParser()
+        return self._web_parser
+
+    @web_parser.setter
+    def web_parser(self, value):
+        self._web_parser = value
+
+    @property
+    def crawler(self) -> Crawler:
+        if self._crawler is None:
+            self._crawler = Crawler(
+                fetcher=self.web_fetcher,
+                parser=self.web_parser,
+                db_manager=self.db_manager,
+                osint_extractor=self.osint_extractor,
+                base_dirs=self.dirs
+            )
+        return self._crawler
+
+    @crawler.setter
+    def crawler(self, value):
+        self._crawler = value
+    
             
-    def _get_validated_url_input(self, prompt_message: str) -> str:
+    def _get_validated_url_input(self, prompt_message: str) -> Optional[str]:
         '''
         Ottiene e valida un input URL.
         '''

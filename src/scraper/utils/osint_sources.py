@@ -15,10 +15,40 @@ from pathlib import Path
 from datetime import datetime
 
 # Importa le utility già esistenti per le chiamate API e l'estrazione/filtraggio
-from .clients import fetch_whois, fetch_dns_records, fetch_shodan, fetch_hunterio, check_email_breaches, fetch_wayback_snapshots
+from .clients import fetch_whois, fetch_dns_records, fetch_shodan, fetch_hunterio, check_email_breaches, fetch_wayback_snapshots, _safe_get
 from .extractors import extract_emails, filter_emails, extract_phone_numbers, filter_phone_numbers
 
 logger = logging.getLogger("osint.sources")
+
+
+def _parse_sherlock_stdout(stdout: str, username: str, include_username: bool = False) -> dict:
+    """Parse sherlock stdout lines into a profiles dict.
+
+    Returns a dict mapping site -> info dict (url, exists, confidence, optionally username).
+    """
+    results: dict = {}
+    try:
+        for line in stdout.splitlines():
+            if "[+]" in line:
+                try:
+                    # Example: [+] Reddit: https://www.reddit.com/user/username
+                    site = line.split("[+]", 1)[1].strip().split(":")[0].strip()
+                    url = line.split(":", 1)[1].strip()
+                    info = {
+                        "url": url,
+                        "status": "Claimed",
+                        "exists": True,
+                        "confidence": 1.0,
+                    }
+                    if include_username:
+                        info["username"] = username
+                    results[site] = info
+                except Exception:
+                    logger.debug(f"Failed to parse sherlock line: {line}")
+                    continue
+    except Exception:
+        logger.debug("Error parsing sherlock stdout")
+    return results
 
 # === Funzioni per Fetching Dati Dominio ===
 
@@ -258,35 +288,19 @@ def fetch_social_osint(username: str, logger, dirs: Dict[str, Path]) -> Dict[str
             if process.stderr:
                 logger.debug(f"Sherlock stderr: {process.stderr}")
             
-            # Analizza l'output di Sherlock
-            results = {}
-            for line in process.stdout.splitlines():
-                if "[+]" in line:  # Linea che indica un profilo trovato
-                    try:
-                        # Esempio di linea: [+] Reddit: https://www.reddit.com/user/username
-                        site = line.split("[+]")[1].strip().split(":")[0].strip()
-                        url = line.split(":", 1)[1].strip()
-                        results[site] = {
-                            "url": url,
-                            "status": "Claimed",
-                            "exists": True,
-                            "confidence": 1.0
-                        }
-                    except Exception as e:
-                        logger.warning(f"Error parsing line '{line}': {e}")
-                        continue
-            
-            # Formatta i risultati
+            # Parse Sherlock stdout using helper
+            results = _parse_sherlock_stdout(process.stdout, username, include_username=False)
+
             formatted_results = {
                 "profiles": results,
                 "summary": {
                     "username": username,
-                    "platforms_checked": len(process.stdout.splitlines()),  # Approssimativo
+                    "platforms_checked": len(process.stdout.splitlines()),
                     "profiles_found": len(results),
-                    "report_file": str(output_file)
-                }
+                    "report_file": str(output_file),
+                },
             }
-            
+
             return formatted_results
             
         except subprocess.CalledProcessError as e:
@@ -357,35 +371,19 @@ def find_brand_social_profiles(domain_or_brand_name: str, logger, dirs: Dict[str
             if process.stderr:
                 logger.debug(f"Sherlock stderr: {process.stderr}")
             
-            # Analizza l'output di Sherlock
-            results = {}
-            for line in process.stdout.splitlines():
-                if "[+]" in line:  # Linea che indica un profilo trovato
-                    try:
-                        # Esempio di linea: [+] Reddit: https://www.reddit.com/user/username
-                        site = line.split("[+]")[1].strip().split(":")[0].strip()
-                        url = line.split(":", 1)[1].strip()
-                        results[site] = {
-                            "url": url,
-                            "username": brand_name,
-                            "exists": True,
-                            "confidence": 1.0  # Sherlock è abbastanza accurato, quindi usiamo confidenza alta
-                        }
-                    except Exception as e:
-                        logger.warning(f"Error parsing line '{line}': {e}")
-                        continue
-            
-            # Formatta i risultati nel modo atteso dal display_crawl_osint_report
+            # Parse Sherlock stdout using helper
+            results = _parse_sherlock_stdout(process.stdout, brand_name, include_username=True)
+
             formatted_results = {
                 "profiles": results,
                 "summary": {
                     "username": brand_name,
                     "platforms_checked": len(process.stdout.splitlines()),
                     "profiles_found": len(results),
-                    "report_file": str(output_file)
-                }
+                    "report_file": str(output_file),
+                },
             }
-            
+
             return formatted_results
             
         except subprocess.CalledProcessError as e:
@@ -472,7 +470,7 @@ def fetch_website_contacts(domain: str, ) -> Dict[str, List[str]]:
         for url in urls_to_try:
             try:
                 # Use a timeout and handle redirects
-                response = requests.get(url, headers=headers, timeout=10, verify=False, allow_redirects=True)
+                response = _safe_get(url, headers=headers, timeout=10, verify=False, allow_redirects=True)
 
                 # Only process if the request was successful (2xx status code)
                 if response.status_code >= 200 and response.status_code < 300:

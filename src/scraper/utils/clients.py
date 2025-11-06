@@ -6,7 +6,7 @@ import logging
 import shodan # Per Shodan
 from dns import resolver as dns_resolver # Per DNS
 from typing import List, Dict, Any, Optional
-from datetime import datetime # Per la gestione delle date in WHOIS
+from datetime import datetime, timezone # Per la gestione delle date in WHOIS
 import sys
 import time
 from waybackpy import WaybackMachineCDXServerAPI
@@ -14,6 +14,25 @@ from colorama import Fore, Style
 
 # È una buona pratica avere un logger per modulo
 logger = logging.getLogger(__name__)
+
+
+def _safe_get(url: str, *, headers: dict | None = None, timeout: int = 10, max_retries: int = 3, backoff_factor: float = 0.5, verify: bool = True, allow_redirects: bool = True):
+    """Perform requests.get with retries and exponential backoff.
+
+    Returns the requests.Response on success or raises the last RequestException on failure.
+    """
+    attempt = 0
+    while True:
+        try:
+            return requests.get(url, headers=headers, timeout=timeout, verify=verify, allow_redirects=allow_redirects)
+        except requests.exceptions.RequestException as e:
+            attempt += 1
+            if attempt > max_retries:
+                logger.error(f"Failed to GET {url} after {max_retries} attempts: {e}")
+                raise
+            sleep_time = backoff_factor * (2 ** (attempt - 1))
+            logger.debug(f"Request to {url} failed (attempt {attempt}/{max_retries}), retrying in {sleep_time}s: {e}")
+            time.sleep(sleep_time)
 
 
 # === Wayback Machine Client ===
@@ -31,9 +50,10 @@ def fetch_wayback_snapshots(url: str, limit: int = 5) -> Dict [str, Any]:
     try:
         logger.debug(f"Fetching Wayback Machine snapshots for URL: {url} with limit {limit}")
         print(f"Cercando snapshot per {url} con limite {limit}...")  # Per debug
-        cdx_api = WaybackMachineCDXServerAPI(url, user_agent= "Browsint Research Bot")
+
+        cdx_api = WaybackMachineCDXServerAPI(url, user_agent="Browsint Research Bot")
         cdx_api.limit = limit  # Imposta il limite di snapshot da recuperare
-        snapshots = cdx_api.snapshots() 
+        snapshots = cdx_api.snapshots()
 
         if not snapshots:
             logger.info(f"No snapshots found for {url}.")
@@ -44,15 +64,16 @@ def fetch_wayback_snapshots(url: str, limit: int = 5) -> Dict [str, Any]:
         for s in snapshots:
             results.append({
                 "timestamp": s.timestamp,
-                "url": s.archive_url, # URL dell'archivio effettivo
+                "url": s.archive_url,  # URL dell'archivio effettivo
                 "original_url": s.original,
                 "status_code": s.statuscode,
                 "mime_type": s.mimetype,
-                "diges": s.digest  # Hash del contenuto
+                "diges": s.digest,  # Hash del contenuto
             })
 
             print(f"Trovato snapshot numero {len(results)}:{s.archive_url}")
-            if len(results) > 5: break
+            if len(results) > 5:
+                break
 
         logger.debug(f"Found {len(results)} snapshots for {url}.")
         return {"snapshots": results}
@@ -83,7 +104,7 @@ def fetch_hunterio(email: str, api_key: Optional[str]) -> Dict[str, Any]:
     try:
         logger.debug(f"Fetching Hunter.io data for {email}")
         url = f"https://api.hunter.io/v2/email-verifier?email={email}&api_key={api_key}"
-        response = requests.get(url, timeout=10)
+        response = _safe_get(url, timeout=10)
         response.raise_for_status()  # Solleva un'eccezione per status codes 4xx/5xx
         
         if response.text:
@@ -130,11 +151,12 @@ def check_email_breaches(email: str, api_key: Optional[str]) -> List[Dict[str, A
 
     try:
         logger.debug(f"Checking HIBP for breaches for email: {email}")
-        response = requests.get(
+        response = _safe_get(
             f"https://haveibeenpwned.com/api/v3/breachedaccount/{email.strip()}",
-            headers={"hibp-api-key": api_key, "User-Agent": "BrowsintOSINTTool/1.0"}, # È buona norma specificare un User-Agent
+            headers={"hibp-api-key": api_key, "User-Agent": "BrowsintOSINTTool/1.0"},
             timeout=15,
         )
+        response.raise_for_status()
         if response.status_code == 200:
             logger.debug(f"HIBP data found for {email}")
             return response.json()
@@ -145,7 +167,10 @@ def check_email_breaches(email: str, api_key: Optional[str]) -> List[Dict[str, A
             logger.warning(
                 f"HIBP API returned status {response.status_code} for {email}: {response.text[:200]}"
             )
-            return [] # Restituisce lista vuota in caso di altri errori API
+            return []
+    except requests.exceptions.HTTPError as http_err:
+        logger.error(f"HIBP API HTTP error for {email}: {http_err} - Response: {getattr(http_err, 'response', 'N/A')}")
+        return []
     except requests.exceptions.RequestException as e:
         logger.error(f"HIBP check network/request error for {email}: {e}", exc_info=True)
         return []
@@ -246,14 +271,36 @@ def fetch_whois(target: str) -> Dict[str, Any]:
             date_fields = ["creation_date", "expiration_date", "updated_date"]
             for field in date_fields:
                 value = processed_info.get(field)
-                if value:
-                    if isinstance(value, (list, tuple)):
-                        # Se è una lista di date, prendi la più recente
-                        dates = [d for d in value if isinstance(d, datetime)]
-                        if dates:
-                            processed_info[field] = max(dates).isoformat()
-                    elif isinstance(value, datetime):
-                        processed_info[field] = value.isoformat()
+                if not value:
+                    continue
+
+                # Normalize to timezone-aware datetimes in UTC for safe comparisons
+                def _to_aware_utc(dt_val):
+                    if isinstance(dt_val, datetime):
+                        if dt_val.tzinfo is None:
+                            return dt_val.replace(tzinfo=timezone.utc)
+                        return dt_val.astimezone(timezone.utc)
+                    # try parse ISO-like strings
+                    try:
+                        parsed = datetime.fromisoformat(str(dt_val))
+                        if parsed.tzinfo is None:
+                            return parsed.replace(tzinfo=timezone.utc)
+                        return parsed.astimezone(timezone.utc)
+                    except Exception:
+                        return None
+
+                if isinstance(value, (list, tuple)):
+                    dates = []
+                    for d in value:
+                        a = _to_aware_utc(d)
+                        if a:
+                            dates.append(a)
+                    if dates:
+                        processed_info[field] = max(dates).isoformat()
+                else:
+                    a = _to_aware_utc(value)
+                    if a:
+                        processed_info[field] = a.isoformat()
 
             # Standardizza i name servers
             name_servers = processed_info.get("name_servers", [])

@@ -307,29 +307,66 @@ class OSINTExtractor:
         phones_found = set()
 
         def find_contacts_recursive(item: Any):
+            """Ricorsivamente cerca stringhe dentro dict/list e usa helper centralizzati per
+            estrarre email e numeri di telefono (evitando regex duplicati)."""
             if isinstance(item, dict):
                 for k, v in item.items():
                     if isinstance(v, str):
-                        if 'email' in k.lower() and "@" in v: emails_found.add(v.lower())
-                        emails_found.update(re.findall(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b', v))
-                        phones_found.update(re.findall(r'\+?\d[\d\s\-\(\).]{7,}\d', v))
+                        # prefer explicit email-looking fields
+                        if 'email' in k.lower() and "@" in v:
+                            emails_found.add(v.lower())
+
+                        # use centralized extractors for robustness
+                        try:
+                            emails_found.update(extract_emails(v))
+                        except Exception:
+                            # fallback to central extractor again (best-effort)
+                            try:
+                                emails_found.update(extract_emails(v))
+                            except Exception:
+                                pass
+
+                        try:
+                            phones_found.update(extract_phone_numbers(v))
+                        except Exception:
+                            try:
+                                phones_found.update(extract_phone_numbers(v))
+                            except Exception:
+                                pass
                     else:
                         find_contacts_recursive(v)
             elif isinstance(item, list):
                 for i in item:
                     find_contacts_recursive(i)
             elif isinstance(item, str):
-                emails_found.update(re.findall(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b', item))
-                phones_found.update(re.findall(r'\+?\d[\d\s\-\(\).]{7,}\d', item))
+                try:
+                    emails_found.update(extract_emails(item))
+                except Exception:
+                    try:
+                        emails_found.update(extract_emails(item))
+                    except Exception:
+                        pass
+                try:
+                    phones_found.update(extract_phone_numbers(item))
+                except Exception:
+                    try:
+                        phones_found.update(extract_phone_numbers(item))
+                    except Exception:
+                        pass
 
 
         find_contacts_recursive(data)
 
-        cleaned_phones = set()
-        for phone in phones_found:
-            cleaned_phone_value = re.sub(r'[^\d+]', '', phone)
-            if 7 < len(cleaned_phone_value.replace('+', '')) < 16:
-                 cleaned_phones.add(cleaned_phone_value)
+        # Use centralized phone filter to clean and validate phone numbers
+        try:
+            cleaned_phones = filter_phone_numbers(phones_found)
+        except Exception:
+            # Fallback: simple cleanup
+            cleaned_phones = set()
+            for phone in phones_found:
+                cleaned_phone_value = re.sub(r'[^\d+]', '', str(phone))
+                if 7 < len(cleaned_phone_value.replace('+', '')) < 16:
+                    cleaned_phones.add(cleaned_phone_value)
 
 
         contacts_to_save: list[tuple[str, str, str]] = []
