@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <!-- Sidebar -->
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-list me-2"></i>Menu Principale</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="#" class="list-group-item list-group-item-action" onclick="showSection('home')">
+                    <i class="bi bi-house me-2"></i>Dashboard
+                </a>
+                <a href="#" class="list-group-item list-group-item-action" onclick="showSection('download')">
+                    <i class="bi bi-download me-2"></i>Download & Crawl
+                </a>
+                <a href="#" class="list-group-item list-group-item-action" onclick="showSection('scraping')">
+                    <i class="bi bi-search me-2"></i>OSINT Scraping
+                </a>
+                <a href="#" class="list-group-item list-group-item-action" onclick="showSection('domain-analysis')">
+                    <i class="bi bi-globe me-2"></i>Analisi Dominio
+                </a>
+                <a href="#" class="list-group-item list-group-item-action" onclick="showSection('email-analysis')">
+                    <i class="bi bi-envelope me-2"></i>Analisi Email
+                </a>
+                <a href="#" class="list-group-item list-group-item-action" onclick="showSection('username-analysis')">
+                    <i class="bi bi-person me-2"></i>Analisi Username
+                </a>
+                <a href="#" class="list-group-item list-group-item-action" onclick="showSection('profiles')">
+                    <i class="bi bi-collection me-2"></i>Profili Salvati
+                </a>
+                <a href="#" class="list-group-item list-group-item-action" onclick="showSection('database')">
+                    <i class="bi bi-database me-2"></i>Database
+                </a>
+                <a href="#" class="list-group-item list-group-item-action" onclick="showSection('api-keys')">
+                    <i class="bi bi-key me-2"></i>API Keys
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="col-md-9">
+        <!-- Home Section -->
+        <div id="home-section" class="content-section">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center py-5">
+                            <i class="bi bi-search display-1 text-primary mb-4"></i>
+                            <h1 class="display-4 fw-bold text-primary mb-3">Browsint</h1>
+                            <p class="lead text-muted mb-4">Web Intelligence & OSINT Collection Tool</p>
+                            <p class="text-muted">Interfaccia web moderna per tutte le funzionalità di intelligence e raccolta dati OSINT</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mt-4">
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-download display-4 text-info mb-3"></i>
+                            <h5>Crawling & Download</h5>
+                            <p class="text-muted">Scarica e analizza siti web con crawling ricorsivo</p>
+                            <button class="btn btn-info" onclick="showSection('download')">Inizia</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-search display-4 text-warning mb-3"></i>
+                            <h5>OSINT Scraping</h5>
+                            <p class="text-muted">Estrai informazioni OSINT da pagine web</p>
+                            <button class="btn btn-warning" onclick="showSection('scraping')">Inizia</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-person-badge display-4 text-success mb-3"></i>
+                            <h5>Profilazione OSINT</h5>
+                            <p class="text-muted">Analizza domini, email e username</p>
+                            <button class="btn btn-success" onclick="showSection('domain-analysis')">Inizia</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Stato Sistema</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="system-status">
+                                <div class="d-flex justify-content-center">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Caricamento...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Download Section -->
+        <div id="download-section" class="content-section" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-download me-2"></i>Download & Crawl</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Download Singola Pagina</h6>
+                                </div>
+                                <div class="card-body">
+                                    <form id="single-download-form">
+                                        <div class="mb-3">
+                                            <label class="form-label">URL</label>
+                                            <input type="url" class="form-control" name="url" required 
+                                                   placeholder="https://example.com">
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="bi bi-download me-2"></i>Scarica
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Crawl Sito Web</h6>
+                                </div>
+                                <div class="card-body">
+                                    <form id="crawl-form">
+                                        <div class="mb-3">
+                                            <label class="form-label">URL di partenza</label>
+                                            <input type="url" class="form-control" name="url" required 
+                                                   placeholder="https://example.com">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Profondità</label>
+                                            <input type="number" class="form-control" name="depth" value="2" min="1" max="5">
+                                        </div>
+                                        <button type="submit" class="btn btn-success">
+                                            <i class="bi bi-arrow-repeat me-2"></i>Avvia Crawl
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scraping Section -->
+        <div id="scraping-section" class="content-section" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-search me-2"></i>OSINT Scraping</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Analisi Pagina Singola</h6>
+                                </div>
+                                <div class="card-body">
+                                    <form id="page-analysis-form">
+                                        <div class="mb-3">
+                                            <label class="form-label">URL</label>
+                                            <input type="url" class="form-control" name="url" required 
+                                                   placeholder="https://example.com">
+                                        </div>
+                                        <button type="submit" class="btn btn-info">
+                                            <i class="bi bi-search me-2"></i>Analizza
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Crawl con OSINT</h6>
+                                </div>
+                                <div class="card-body">
+                                    <form id="osint-crawl-form">
+                                        <div class="mb-3">
+                                            <label class="form-label">URL di partenza</label>
+                                            <input type="url" class="form-control" name="url" required 
+                                                   placeholder="https://example.com">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Profondità</label>
+                                            <input type="number" class="form-control" name="depth" value="1" min="1" max="3">
+                                        </div>
+                                        <button type="submit" class="btn btn-warning">
+                                            <i class="bi bi-search me-2"></i>Avvia OSINT Crawl
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Domain Analysis Section -->
+        <div id="domain-analysis-section" class="content-section" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-globe me-2"></i>Analisi Dominio OSINT</h5>
+                </div>
+                <div class="card-body">
+                    <form id="domain-analysis-form">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label class="form-label">Dominio</label>
+                                    <input type="text" class="form-control" name="domain" required 
+                                           placeholder="example.com">
+                                    <div class="form-text">Inserisci il dominio senza http:// o www.</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">&nbsp;</label>
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <i class="bi bi-search me-2"></i>Analizza Dominio
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Email Analysis Section -->
+        <div id="email-analysis-section" class="content-section" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-envelope me-2"></i>Analisi Email OSINT</h5>
+                </div>
+                <div class="card-body">
+                    <form id="email-analysis-form">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label class="form-label">Indirizzo Email</label>
+                                    <input type="email" class="form-control" name="email" required 
+                                           placeholder="example@domain.com">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">&nbsp;</label>
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <i class="bi bi-search me-2"></i>Analizza Email
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Username Analysis Section -->
+        <div id="username-analysis-section" class="content-section" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-person me-2"></i>Analisi Username OSINT</h5>
+                </div>
+                <div class="card-body">
+                    <form id="username-analysis-form">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label class="form-label">Username</label>
+                                    <input type="text" class="form-control" name="username" required 
+                                           placeholder="username">
+                                    <div class="form-text">Ricerca profili social per questo username</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">&nbsp;</label>
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <i class="bi bi-search me-2"></i>Cerca Profili
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profiles Section -->
+        <div id="profiles-section" class="content-section" style="display: none;">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-collection me-2"></i>Profili OSINT Salvati</h5>
+                    <button class="btn btn-outline-primary btn-sm" onclick="loadProfiles()">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Aggiorna
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="profiles-list">
+                        <div class="d-flex justify-content-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Caricamento...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Database Section -->
+        <div id="database-section" class="content-section" style="display: none;">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-database me-2"></i>Informazioni Database</h5>
+                    <button class="btn btn-outline-primary btn-sm" onclick="loadDatabaseInfo()">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Aggiorna
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="database-info">
+                        <div class="d-flex justify-content-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Caricamento...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Keys Section -->
+        <div id="api-keys-section" class="content-section" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-key me-2"></i>Gestione API Keys</h5>
+                </div>
+                <div class="card-body">
+                    <div id="api-keys-list">
+                        <div class="d-flex justify-content-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Caricamento...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results-section" class="content-section" style="display: none;">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-file-text me-2"></i>Risultati</h5>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="hideResults()">
+                        <i class="bi bi-x me-1"></i>Chiudi
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="results-content"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
