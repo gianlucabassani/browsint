@@ -1,5 +1,4 @@
 beautifulsoup4==4.13.4
-bs4==0.0.2
 certifi==2025.7.14
 charset-normalizer==3.4.2
 click==8.2.1
@@ -46,9 +45,3 @@ validators==0.35.0
 waybackpy==3.0.6
 whois==1.20240129.2
 xlsxwriter==3.2.5
-
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-python-multipart==0.0.6
-jinja2==3.1.2
-aiofiles==23.2.1

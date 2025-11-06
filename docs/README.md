@@ -60,7 +60,7 @@ SHODAN_API_KEY=your_key_here
 HIBP_API_KEY=your_key_here
 VIRUSTOTAL_API_KEY=your_key_here
 SECURITYTRAILS_API_KEY=your_key_here
-WHOISXMLAPI_API_KEY=your_key_here
+WHOISXML_API_KEY=your_key_here
 ```
 
 Puoi anche utilizzare il menu di configurazione dell'applicazione per gestire le API keys in modo interattivo.
