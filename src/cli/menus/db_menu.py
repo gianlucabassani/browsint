@@ -543,6 +543,7 @@ def restore_from_backup(cli_instance: 'ScraperCLI') -> None:
             return
         print(f"\n{Fore.CYAN}Ripristino in corso...{Style.RESET_ALL}")
         cli_instance.db_manager.disconnect()  # Chiude tutte le connessioni
+        
         # Determina quale database ripristinare (websites/osint) in base al nome file
         if "websites" in selected_backup.name:
             main_db_path = cli_instance.db_manager.databases['websites']
@@ -553,9 +554,11 @@ def restore_from_backup(cli_instance: 'ScraperCLI') -> None:
             prompt_for_input(f"\n{Fore.CYAN}Premi INVIO per continuare...{Style.RESET_ALL}")
             return
         shutil.copy2(selected_backup, main_db_path)
+        
         cli_instance.db_manager.init_schema()  # Riconnette e re-inizializza
         print(f"{Fore.GREEN}✓ Database ripristinato con successo!{Style.RESET_ALL}")
         logger.info(f"Database restored from backup: {selected_backup.name}")
+    
     except ValueError:
         print(f"{Fore.RED}Devi inserire un numero.{Style.RESET_ALL}")
     except Exception as e:

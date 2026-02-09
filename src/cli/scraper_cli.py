@@ -159,7 +159,7 @@ class ScraperCLI:
         print(f"{Fore.YELLOW}4.{Style.RESET_ALL} Opzioni di sistema\n")
         print(f"{Fore.YELLOW}0.{Style.RESET_ALL} Esci")
         return prompt_for_input(f"{Fore.CYAN}Scelta: {Style.RESET_ALL}")
-
+    
     def _handle_main_menu_choice(self, choice: str):
         '''Gestisce la scelta dell'utente nel menu principale.'''
         match choice:
