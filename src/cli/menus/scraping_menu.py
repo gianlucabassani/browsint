@@ -5,6 +5,7 @@ from colorama import Fore, Style
 from typing import TYPE_CHECKING
 from ..utils import clear_screen, prompt_for_input, json_serial, export_menu
 import json
+import asyncio
 import validators
 import time
 from datetime import datetime
@@ -35,7 +36,7 @@ def display_scraping_menu() -> str:
 
     return prompt_for_input("Scelta: ")
 
-def handle_scraping_choice(cli_instance: 'ScraperCLI', choice: str) -> None:
+async def handle_scraping_choice(cli_instance: 'ScraperCLI', choice: str) -> None:
     '''
     Gestisce la scelta dell'utente nel menu di scraping.
     
@@ -44,14 +45,14 @@ def handle_scraping_choice(cli_instance: 'ScraperCLI', choice: str) -> None:
         choice: La scelta dell'utente
     '''
     match choice:
-        case "1": analyze_page_structure(cli_instance)
-        case "2": start_website_crawl_with_osint(cli_instance)
+        case "1": await analyze_page_structure(cli_instance)
+        case "2": await start_website_crawl_with_osint(cli_instance)
         case "0": return
         case _:
             print(f"{Fore.RED}✗ Scelta non valida")
             input(f"{Fore.CYAN}\nPremi INVIO per continuare...{Style.RESET_ALL}") 
 
-def analyze_page_structure(cli_instance: 'ScraperCLI') -> None:
+async def analyze_page_structure(cli_instance: 'ScraperCLI') -> None:
     '''
     Analizza la struttura di una singola pagina web e estrae informazioni OSINT di base.
     '''
@@ -66,7 +67,8 @@ def analyze_page_structure(cli_instance: 'ScraperCLI') -> None:
     print(f"{Fore.YELLOW}⏳ Analisi struttura pagina per {url}...{Style.RESET_ALL}")
     try:
         try:
-            response = cli_instance.web_fetcher.fetch_full_response(url) # ottengo anche gli headers e lo stato della risposta
+            async with cli_instance.web_fetcher:
+                response = await cli_instance.web_fetcher.fetch_full_response(url) # ottengo anche gli headers e lo stato della risposta
         except KeyboardInterrupt:
             print(f"\n{Fore.YELLOW}Operazione annullata dall'utente.{Style.RESET_ALL}")
             return
@@ -109,7 +111,7 @@ def analyze_page_structure(cli_instance: 'ScraperCLI') -> None:
 
         export_choice = export_menu()
         if export_choice != "0":
-            _export_analysis_results(cli_instance, url, parsed_data, osint_data, export_choice)
+            await _export_analysis_results(cli_instance, url, parsed_data, osint_data, export_choice)
 
     except KeyboardInterrupt:
         print(f"\n{Fore.YELLOW}Operazione annullata dall'utente.{Style.RESET_ALL}")
@@ -120,7 +122,7 @@ def analyze_page_structure(cli_instance: 'ScraperCLI') -> None:
 
     input(f"\n{Fore.CYAN}Premi INVIO per continuare...{Style.RESET_ALL}")
 
-def start_website_crawl_with_osint(cli_instance: 'ScraperCLI') -> None:
+async def start_website_crawl_with_osint(cli_instance: 'ScraperCLI') -> None:
     '''
     Avvia il crawling di un sito web in modalità OSINT, estraendo informazioni e salvandole nel database osint.
     Non scarica i file su disco ma analizza ogni pagina per estrarre informazioni utili.
@@ -150,7 +152,8 @@ def start_website_crawl_with_osint(cli_instance: 'ScraperCLI') -> None:
 
     try:
         try:
-            crawl_stats = cli_instance.crawler.start_crawl(
+            async with cli_instance.web_fetcher:
+                crawl_stats = await cli_instance.crawler.start_crawl(
                 start_url=url,
                 depth_limit=depth,
                 perform_osint_on_pages=True,
@@ -283,7 +286,7 @@ def _display_base_crawl_stats(stats: dict) -> None:
     print(f"\nPercorso di salvataggio:")
     print(f"  • Contenuto: {stats.get('download_path', 'N/A')}")
 
-def _export_analysis_results(cli_instance: 'ScraperCLI', url: str, parsed_data: dict, osint_data: dict, export_choice: str, save_paths: dict = None) -> None:
+async def _export_analysis_results(cli_instance: 'ScraperCLI', url: str, parsed_data: dict, osint_data: dict, export_choice: str, save_paths: dict = None) -> None:
     '''
     Esporta i risultati dell'analisi web in formato scelto (JSON, HTML, PDF, Tutti).
     '''
@@ -312,7 +315,8 @@ def _export_analysis_results(cli_instance: 'ScraperCLI', url: str, parsed_data: 
                 analysis_output_dir.mkdir(parents=True, exist_ok=True)
                 # Save original HTML
                 raw_html_path = analysis_output_dir / "original.html"
-                response = cli_instance.web_fetcher.fetch_full_response(url)
+                async with cli_instance.web_fetcher:
+                    response = await cli_instance.web_fetcher.fetch_full_response(url)
                 content = response.content.decode(response.encoding if response.encoding else 'utf-8', errors='replace')
                 with open(raw_html_path, "w", encoding="utf-8") as f_html:
                     f_html.write(content)

@@ -7,6 +7,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 import time
 import logging
+import asyncio
 import validators
 from ..utils import clear_screen, prompt_for_input
 import json
@@ -33,7 +34,7 @@ def display_download_menu() -> str:
 
     return prompt_for_input("Scelta: ")
 
-def handle_download_choice(cli_instance: 'ScraperCLI', choice: str) -> None:
+async def handle_download_choice(cli_instance: 'ScraperCLI', choice: str) -> None:
     '''
     Gestisce la scelta dell'utente nel menu di download.
     
@@ -42,15 +43,15 @@ def handle_download_choice(cli_instance: 'ScraperCLI', choice: str) -> None:
         choice: La scelta dell'utente
     '''
     match choice:
-        case "1": download_single_url(cli_instance)
-        case "2": download_multiple_urls(cli_instance)
-        case "3": start_website_crawl_base(cli_instance)
+        case "1": await download_single_url(cli_instance)
+        case "2": await download_multiple_urls(cli_instance)
+        case "3": await start_website_crawl_base(cli_instance)
         case "0": return
         case _:
             print(f"{Fore.RED}✗ Scelta non valida")
             input(f"{Fore.CYAN}\nPremi INVIO per continuare...{Style.RESET_ALL}")
 
-def download_single_url(cli_instance: 'ScraperCLI') -> None:
+async def download_single_url(cli_instance: 'ScraperCLI') -> None:
     '''Scarica il contenuto di un singolo URL e offre l'opzione di salvarlo.'''
     url = prompt_for_input("Inserisci URL: ")
     if not url:
@@ -64,7 +65,8 @@ def download_single_url(cli_instance: 'ScraperCLI') -> None:
 
     print(f"{Fore.YELLOW}⏳ Scaricamento in corso per {url}...")
     try:
-        content = cli_instance.web_fetcher.fetch(url)
+        async with cli_instance.web_fetcher:
+            content = await cli_instance.web_fetcher.fetch(url)
         if content:
             print(f"\n{Fore.YELLOW}✓ Contenuto scaricato ({len(content)} bytes)")
             save_option = prompt_for_input("\nSalvare il contenuto? (s/n): ").lower()
@@ -96,7 +98,7 @@ def download_single_url(cli_instance: 'ScraperCLI') -> None:
         logger.error(f"Error during single URL download {url}: {e}", exc_info=True)
         print(f"{Fore.RED}✗ Errore durante il download: {e}")
 
-def download_multiple_urls(cli_instance: 'ScraperCLI') -> None:
+async def download_multiple_urls(cli_instance: 'ScraperCLI') -> None:
     '''Scarica contenuti da una lista di URL specificati in un file.'''
     file_path_input = prompt_for_input("Inserisci il percorso del file contenente gli URL (uno per riga): ")
     url_file_path = Path(file_path_input)
@@ -128,7 +130,8 @@ def download_multiple_urls(cli_instance: 'ScraperCLI') -> None:
                 url = "https://" + url
             print(f"{Fore.CYAN}[{i}/{len(urls)}] Scaricando: {url}...{Style.RESET_ALL}")
             try:
-                content = cli_instance.web_fetcher.fetch(url)
+                async with cli_instance.web_fetcher:
+                    content = await cli_instance.web_fetcher.fetch(url)
                 if content:
                     domain = urlparse(url).netloc or f"url_{i}" # netloc riesce a ottenere il dominio eseguendo un parse dell'URL 
                     file_name = f"{domain.replace('.', '_')}_{i}.html"
@@ -167,7 +170,7 @@ def download_multiple_urls(cli_instance: 'ScraperCLI') -> None:
         logger.error(f"General error during multiple URL download: {e_main}", exc_info=True)
         print(f"{Fore.RED}✗ Errore generale durante il download multiplo: {e_main}")
 
-def start_website_crawl_base(cli_instance: 'ScraperCLI') -> None:
+async def start_website_crawl_base(cli_instance: 'ScraperCLI') -> None:
     '''
     Esegue il crawling di un sito web in modalità download, salvando HTML e struttura su disco e nel database websites.
     '''
@@ -215,7 +218,8 @@ def start_website_crawl_base(cli_instance: 'ScraperCLI') -> None:
         crawler_instance.osint_extractor = None # Disabilita l'OSINT extractor per questa operazione
 
         try:
-            crawl_stats = crawler_instance.start_crawl(
+            async with cli_instance.web_fetcher:
+                crawl_stats = await cli_instance.crawler.start_crawl(
                 start_url=url,
                 depth_limit=depth,
                 politeness_delay=1.0,

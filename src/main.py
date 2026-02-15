@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 import argparse
 import logging
+import asyncio
 import colorama
 
 # Add src directory to Python path
@@ -36,7 +37,10 @@ def main():
     args = parser.parse_args()
 
     cli = ScraperCLI()
-    cli.run()
+    try:
+        asyncio.run(cli.run())
+    except KeyboardInterrupt:
+        print("\n[!] Interruzione da tastiera ricevuta. Uscita in corso...")
 
 if __name__ == "__main__":
     main() 

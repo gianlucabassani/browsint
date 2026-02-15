@@ -45,3 +45,6 @@ validators==0.35.0
 waybackpy==3.0.6
 whois==1.20240129.2
 xlsxwriter==3.2.5
+httpx>=0.25.0
+aiofiles>=23.0.0
+charset-normalizer>=3.0.0

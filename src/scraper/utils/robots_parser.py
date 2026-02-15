@@ -160,18 +160,18 @@ class RobotsParser:
             for path in sorted(data.sensitive_paths):
                 print(f"  • {path}")
         
-        print(f"\n{Fore.YELLOW}📋 Access Rules:{Style.RESET_ALL}")
+        print(f"\n{Fore.YELLOW}Access Rules:{Style.RESET_ALL}")
         for rule in data.rules:
             allow_text = 'Allow' if rule.allow else 'Disallow'
             sensitive_mark = f" {Fore.RED}(!){Style.RESET_ALL}" if rule.is_sensitive else ""
             print(f"  • {allow_text}: {rule.path}{sensitive_mark}")
         
         if data.sitemaps:
-            print(f"\n{Fore.BLUE}🗺 Sitemaps:{Style.RESET_ALL}")
+            print(f"\n{Fore.BLUE}Sitemaps:{Style.RESET_ALL}")
             for sitemap in data.sitemaps:
                 print(f"  • {sitemap}")
         
         if data.crawl_delay:
-            print(f"\n{Fore.MAGENTA}⏱ Crawl-delay: {data.crawl_delay} seconds{Style.RESET_ALL}")
+            print(f"\n{Fore.MAGENTA}Crawl-delay: {data.crawl_delay} seconds{Style.RESET_ALL}")
         
         print(f"\n{Fore.CYAN}{'='*50}{Style.RESET_ALL}\n")

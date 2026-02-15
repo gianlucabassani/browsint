@@ -7,6 +7,7 @@ from textwrap import indent
 from urllib.parse import urlparse
 import json
 import logging
+import asyncio
 import re
 import time
 from datetime import datetime
@@ -120,7 +121,7 @@ class ScraperCLI:
         print(banner)
         time.sleep(0.5)
 
-    def run(self) -> None:
+    async def run(self) -> None:
         '''Avvia il loop principale dell'applicazione CLI.'''
         try:
             self.show_banner()
@@ -137,7 +138,7 @@ class ScraperCLI:
             while self.running:
                 try:
                     choice = self.display_main_menu()
-                    self._handle_main_menu_choice(choice)
+                    await self._handle_main_menu_choice(choice)
                 except KeyboardInterrupt:
                     print(f"\n{Fore.YELLOW}Grazie per aver usato Browsint! Arrivederci!{Style.RESET_ALL}")
                     return
@@ -147,6 +148,9 @@ class ScraperCLI:
         except Exception as e:
             logger.error(f"Errore generale nell'applicazione: {e}", exc_info=True)
             print(f"\n{Fore.RED}✗ Si è verificato un errore imprevisto: {e}{Style.RESET_ALL}")
+        finally:
+            if self._web_fetcher is not None:
+                await self._web_fetcher.close()
 
     def display_main_menu(self) -> str:
         '''Visualizza il menu principale e restituisce la scelta dell'utente.'''
@@ -160,11 +164,11 @@ class ScraperCLI:
         print(f"{Fore.YELLOW}0.{Style.RESET_ALL} Esci")
         return prompt_for_input(f"{Fore.CYAN}Scelta: {Style.RESET_ALL}")
     
-    def _handle_main_menu_choice(self, choice: str):
+    async def _handle_main_menu_choice(self, choice: str):
         '''Gestisce la scelta dell'utente nel menu principale.'''
         match choice:
-            case "1": self._download_websites_menu()
-            case "2": self._scrape_crawl_websites_menu()
+            case "1": await self._download_websites_menu()
+            case "2": await self._scrape_crawl_websites_menu()
             case "3": self._osint_menu()
             case "4": self._options_menu()
             case "0":
@@ -174,21 +178,21 @@ class ScraperCLI:
                 print(f"{Fore.RED}✗ Scelta non valida")
                 input(f"{Fore.CYAN}\nPremi INVIO per continuare...{Style.RESET_ALL}")
 
-    def _download_websites_menu(self):
+    async def _download_websites_menu(self):
         '''Menu per il download di siti web.'''
         while True:
             choice = download_menu.display_download_menu()
             if choice == "0":
                 break
-            download_menu.handle_download_choice(self, choice)
+            await download_menu.handle_download_choice(self, choice)
 
-    def _scrape_crawl_websites_menu(self):
+    async def _scrape_crawl_websites_menu(self):
         '''Menu per lo scraping e crawling di siti web.'''
         while True:
             choice = scraping_menu.display_scraping_menu()
             if choice == "0":
                 break
-            scraping_menu.handle_scraping_choice(self, choice)
+            await scraping_menu.handle_scraping_choice(self, choice)
 
     def _osint_menu(self):
         '''Menu per le funzionalità OSINT.'''
