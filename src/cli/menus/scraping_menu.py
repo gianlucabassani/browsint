@@ -24,7 +24,7 @@ logger = logging.getLogger("browsint.cli")
 crawler_logger = logging.getLogger("scraper.crawler")
 fetcher_logger = logging.getLogger("scraper.fetcher")
 
-def display_scraping_menu() -> str:
+async def display_scraping_menu() -> str:
     '''Visualizza il menu di scraping e restituisce la scelta dell'utente.'''
     #clear_screen()
     print(f"\n{Fore.BLUE}{'═' * 40}")
@@ -34,7 +34,7 @@ def display_scraping_menu() -> str:
     print(f"{Fore.YELLOW}2.{Style.RESET_ALL} Crawl struttura web con estrazione OSINT \n")
     print(f"{Fore.YELLOW}0.{Style.RESET_ALL} Torna al menu principale")
 
-    return prompt_for_input("Scelta: ")
+    return await prompt_for_input("Scelta: ")
 
 async def handle_scraping_choice(cli_instance: 'ScraperCLI', choice: str) -> None:
     '''
@@ -50,13 +50,13 @@ async def handle_scraping_choice(cli_instance: 'ScraperCLI', choice: str) -> Non
         case "0": return
         case _:
             print(f"{Fore.RED}✗ Scelta non valida")
-            input(f"{Fore.CYAN}\nPremi INVIO per continuare...{Style.RESET_ALL}") 
+            await prompt_for_input("Premi INVIO per continuare...") 
 
 async def analyze_page_structure(cli_instance: 'ScraperCLI') -> None:
     '''
     Analizza la struttura di una singola pagina web e estrae informazioni OSINT di base.
     '''
-    url = prompt_for_input("Inserisci l'URL della pagina da analizzare: ")
+    url = await prompt_for_input("Inserisci l'URL della pagina da analizzare: ")
     parsed = urlparse(url)
     if not parsed.scheme:
         url = "https://" + url
@@ -109,7 +109,7 @@ async def analyze_page_structure(cli_instance: 'ScraperCLI') -> None:
         # Display formatted report (with empty save_paths)
         print(format_page_analysis_report(url, parsed_data, osint_data, save_paths))
 
-        export_choice = export_menu()
+        export_choice = await export_menu()
         if export_choice != "0":
             await _export_analysis_results(cli_instance, url, parsed_data, osint_data, export_choice)
 
@@ -120,7 +120,7 @@ async def analyze_page_structure(cli_instance: 'ScraperCLI') -> None:
         logger.error(f"Error during page structure analysis for {url}: {e}", exc_info=True)
         print(f"{Fore.RED}✗ Errore durante l'analisi della pagina: {e}")
 
-    input(f"\n{Fore.CYAN}Premi INVIO per continuare...{Style.RESET_ALL}")
+    await prompt_for_input("Premi INVIO per continuare...")
 
 async def start_website_crawl_with_osint(cli_instance: 'ScraperCLI') -> None:
     '''
@@ -131,7 +131,7 @@ async def start_website_crawl_with_osint(cli_instance: 'ScraperCLI') -> None:
         print(f"{Fore.RED}✗ OSINT Extractor non disponibile. Impossibile procedere.{Style.RESET_ALL}")
         return
 
-    url = prompt_for_input("Inserisci l'URL di partenza per il crawling OSINT: ")
+    url = await prompt_for_input("Inserisci l'URL di partenza per il crawling OSINT: ")
     if not url:
         print(f"{Fore.RED}✗ URL non può essere vuoto.")
         return
@@ -140,7 +140,7 @@ async def start_website_crawl_with_osint(cli_instance: 'ScraperCLI') -> None:
         url = "https://" + url
     
 
-    depth_str = prompt_for_input("Inserisci il limite di profondità (default: 1): ")
+    depth_str = await prompt_for_input("Inserisci il limite di profondità (default: 1): ")
     depth = int(depth_str) if depth_str.isdigit() else 1
 
     print(f"{Fore.YELLOW}⏳ Inizializzazione crawler OSINT per {url} con profondità {depth}...")
@@ -309,7 +309,7 @@ async def _export_analysis_results(cli_instance: 'ScraperCLI', url: str, parsed_
         save_paths = save_paths or {}
         # Only ask to save raw HTML/JSON if exporting JSON or HTML (or all)
         if export_choice in {"1", "2", "4"}:
-            save_raw = prompt_for_input("Vuoi salvare anche HTML originale e struttura JSON? (s/N): ").lower() == 's'
+            save_raw = (await prompt_for_input("Vuoi salvare anche HTML originale e struttura JSON? (s/N): ")).lower() == 's'
             if save_raw:
                 analysis_output_dir = analysis_dir / f"{domain.replace('.', '_')}_{timestamp}"
                 analysis_output_dir.mkdir(parents=True, exist_ok=True)

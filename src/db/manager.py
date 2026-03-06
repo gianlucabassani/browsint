@@ -105,7 +105,7 @@ class DatabaseManager:
             logger.debug(f"Connessione a {db_name} in {db_path}")
 
             connection = sqlite3.connect(
-                db_path, timeout=10.0, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES 
+                db_path, timeout=10.0, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES, check_same_thread=False 
             )
             connection.execute("PRAGMA journal_mode=WAL")
             connection.execute("PRAGMA foreign_keys=ON")

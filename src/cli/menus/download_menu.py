@@ -21,7 +21,7 @@ crawler_logger = logging.getLogger("scraper.crawler")
 fetcher_logger = logging.getLogger("scraper.fetcher")
 db_logger = logging.getLogger("DatabaseManager")
 
-def display_download_menu() -> str:
+async def display_download_menu() -> str:
     '''Visualizza il menu di download e restituisce la scelta dell'utente.'''
     #clear_screen()
     print(f"\n{Fore.BLUE}{'═' * 40}")
@@ -32,7 +32,7 @@ def display_download_menu() -> str:
     print(f"{Fore.YELLOW}3.{Style.RESET_ALL} Crawl e download struttura sito web\n")
     print(f"{Fore.YELLOW}0.{Style.RESET_ALL} Torna al menu principale")
 
-    return prompt_for_input("Scelta: ")
+    return await prompt_for_input("Scelta: ")
 
 async def handle_download_choice(cli_instance: 'ScraperCLI', choice: str) -> None:
     '''
@@ -53,7 +53,7 @@ async def handle_download_choice(cli_instance: 'ScraperCLI', choice: str) -> Non
 
 async def download_single_url(cli_instance: 'ScraperCLI') -> None:
     '''Scarica il contenuto di un singolo URL e offre l'opzione di salvarlo.'''
-    url = prompt_for_input("Inserisci URL: ")
+    url = await prompt_for_input("Inserisci URL: ")
     if not url:
         print(f"{Fore.RED}URL non può essere vuoto.")
         return
@@ -69,14 +69,14 @@ async def download_single_url(cli_instance: 'ScraperCLI') -> None:
             content = await cli_instance.web_fetcher.fetch(url)
         if content:
             print(f"\n{Fore.YELLOW}✓ Contenuto scaricato ({len(content)} bytes)")
-            save_option = prompt_for_input("\nSalvare il contenuto? (s/n): ").lower()
+            save_option = (await prompt_for_input("\nSalvare il contenuto? (s/n): ")).lower()
             if save_option == "s":
                 url_parsed = urlparse(url)
                 domain = url_parsed.netloc or "local_file"
                 timestamp = time.strftime("%Y%m%d_%H%M%S") # formato esempio: 20231001_123456
                 default_filename = f"{domain.replace('.', '_')}_{timestamp}.html" # + nome file
 
-                filename_input = prompt_for_input(f"Nome file (default: {default_filename}): ")
+                filename_input = await prompt_for_input(f"Nome file (default: {default_filename}): ")
                 if filename_input:
                     filename = filename_input if filename_input.lower().endswith('.html') else filename_input + '.html'
                 else:
@@ -100,7 +100,7 @@ async def download_single_url(cli_instance: 'ScraperCLI') -> None:
 
 async def download_multiple_urls(cli_instance: 'ScraperCLI') -> None:
     '''Scarica contenuti da una lista di URL specificati in un file.'''
-    file_path_input = prompt_for_input("Inserisci il percorso del file contenente gli URL (uno per riga): ")
+    file_path_input = await prompt_for_input("Inserisci il percorso del file contenente gli URL (uno per riga): ")
     url_file_path = Path(file_path_input)
 
     if not url_file_path.is_file():
@@ -179,7 +179,7 @@ async def start_website_crawl_base(cli_instance: 'ScraperCLI') -> None:
     print(f"█ {Fore.WHITE}{'CRAWL E DOWNLOAD STRUTTURA SITO WEB':^36}{Fore.BLUE} █")
     print(f"{'═' * 40}{Style.RESET_ALL}\n")
 
-    url = cli_instance._get_validated_url_input("Inserisci l'URL di partenza per il crawling (es. https://example.com): ")
+    url = await cli_instance._get_validated_url_input("Inserisci l'URL di partenza per il crawling (es. https://example.com): ")
     if not url:
         return
     parsed = urlparse(url)
@@ -187,7 +187,7 @@ async def start_website_crawl_base(cli_instance: 'ScraperCLI') -> None:
         url = "https://" + url
     
 
-    depth = cli_instance._get_depth_input(default=2, message="Inserisci il limite di profondità per il crawling (default: 2): ")
+    depth = await cli_instance._get_depth_input(default=2, message="Inserisci il limite di profondità per il crawling (default: 2): ")
     if depth is None:
         return
 
@@ -234,7 +234,7 @@ async def start_website_crawl_base(cli_instance: 'ScraperCLI') -> None:
         crawler_instance.osint_extractor = original_crawler_osint_extractor
 
         print(f"\n{Fore.YELLOW}✓ Crawling per {url} completato.{Style.RESET_ALL}")
-        _display_base_crawl_stats(crawl_stats)
+        await _display_base_crawl_stats(crawl_stats)
 
     except Exception as e:
         logger.error(f"Errore durante il crawling: {e}", exc_info=True)
@@ -246,7 +246,7 @@ async def start_website_crawl_base(cli_instance: 'ScraperCLI') -> None:
         db_logger.setLevel(original_db_level)
 
 
-def _display_base_crawl_stats(stats: dict) -> None:
+async def _display_base_crawl_stats(stats: dict) -> None:
     '''Visualizza statistiche di base del crawling completato.'''
     print(f"\n{Fore.YELLOW}✓ Crawling completato{Style.RESET_ALL}")
     print(f"\nStatistiche di base:")
@@ -262,5 +262,4 @@ def _display_base_crawl_stats(stats: dict) -> None:
         download_path_str = str(download_path_str)
     print(f"  • Contenuto HTML: {download_path_str}")
 
-    print(f"\n{Fore.CYAN}Premi INVIO per continuare...{Style.RESET_ALL}")
-    input()
+    await prompt_for_input("Premi INVIO per continuare...")

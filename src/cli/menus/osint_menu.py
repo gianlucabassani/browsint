@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("browsint.cli")
 
-def display_osint_menu() -> str:
+async def display_osint_menu() -> str:
     '''Visualizza il menu OSINT e restituisce la scelta dell'utente.'''
     #clear_screen()
     print(f"\n{Fore.BLUE}{'═' * 40}")
@@ -32,9 +32,9 @@ def display_osint_menu() -> str:
     print(f"{Fore.YELLOW}6.{Style.RESET_ALL} Esporta profilo\n")
     print(f"{Fore.YELLOW}0.{Style.RESET_ALL} Torna al menu principale")
 
-    return prompt_for_input("Scelta: ")
+    return await prompt_for_input("Scelta: ")
 
-def handle_osint_choice(cli_instance: 'ScraperCLI', choice: str) -> None:
+async def handle_osint_choice(cli_instance: 'ScraperCLI', choice: str) -> None:
     '''
     Gestisce la scelta dell'utente nel menu OSINT.
     
@@ -43,18 +43,18 @@ def handle_osint_choice(cli_instance: 'ScraperCLI', choice: str) -> None:
         choice: La scelta dell'utente
     '''
     match choice:
-        case "1": profile_domain_cli(cli_instance)
-        case "2": profile_email_cli(cli_instance)
-        case "3": profile_username_cli(cli_instance)
-        case "4": show_osint_profiles_cli(cli_instance)
-        case "5": anlyze_existing_profile_cli(cli_instance)
-        case "6": export_osint_profile_cli(cli_instance)
+        case "1": await profile_domain_cli(cli_instance)
+        case "2": await profile_email_cli(cli_instance)
+        case "3": await profile_username_cli(cli_instance)
+        case "4": await show_osint_profiles_cli(cli_instance)
+        case "5": await anlyze_existing_profile_cli(cli_instance)
+        case "6": await export_osint_profile_cli(cli_instance)
         case "0": return
         case _:
             print(f"{Fore.RED}✗ Scelta non valida")
-            input(f"{Fore.CYAN}\nPremi INVIO per continuare...{Style.RESET_ALL}") 
+            await prompt_for_input("Premi INVIO per continuare...") 
 
-def show_osint_tables(cli_instance: 'ScraperCLI', profile_data: dict):
+async def show_osint_tables(cli_instance: 'ScraperCLI', profile_data: dict):
     print(f"{Fore.CYAN}Recupero sommario profili OSINT salvati...{Style.RESET_ALL}")
     profiles_summary = cli_instance.osint_extractor.get_all_osint_profiles_summary()
 
@@ -89,13 +89,14 @@ def show_osint_tables(cli_instance: 'ScraperCLI', profile_data: dict):
         print(f"{Fore.YELLOW}Nessun dato da visualizzare.{Style.RESET_ALL}")
         return
 
-def profile_domain_cli(cli_instance: 'ScraperCLI'):
+async def profile_domain_cli(cli_instance: 'ScraperCLI'):
+    import asyncio
     '''Gestisce l'interazione CLI per profilare un dominio web utilizzando strumenti OSINT.'''
     if not cli_instance.osint_extractor:
         print(f"{Fore.RED}✗ OSINT functionality not available. Check configuration and API keys.{Style.RESET_ALL}")
         return
 
-    domain = prompt_for_input("Inserisci il dominio da profilare (es. example.com): ").strip()
+    domain = (await prompt_for_input("Inserisci il dominio da profilare (es. example.com): ")).strip()
     if not domain:
         print(f"{Fore.RED}✗ Il dominio / url non può essere vuoto{Style.RESET_ALL}")
         return
@@ -104,7 +105,7 @@ def profile_domain_cli(cli_instance: 'ScraperCLI'):
 
     try:
         try:
-            profile = cli_instance.osint_extractor.profile_domain(domain)
+            profile = await asyncio.to_thread(cli_instance.osint_extractor.profile_domain, domain)
         except KeyboardInterrupt:
             print(f"\n{Fore.YELLOW}Operazione annullata dall'utente.{Style.RESET_ALL}")
             return
@@ -116,9 +117,9 @@ def profile_domain_cli(cli_instance: 'ScraperCLI'):
             print("1. Esporta scansione")
             print("2. Torna al menu OSINT")
 
-            choice = prompt_for_input("Scelta: ").strip()
+            choice = (await prompt_for_input("Scelta: ")).strip()
             if choice == "1":
-                export_osint_profile_cli(cli_instance, profile_data=profile)
+                await export_osint_profile_cli(cli_instance, profile_data=profile)
         else:
             error_msg = profile.get("error", "Unknown error")
             print(f"{Fore.RED}✗ Errore nella creazione del profilo OSINT: {error_msg}{Style.RESET_ALL}")
@@ -127,11 +128,12 @@ def profile_domain_cli(cli_instance: 'ScraperCLI'):
         logger.error(f"Error during domain profiling: {e}", exc_info=True)
         print(f"{Fore.RED}✗ Errore durante la profilazione: {e}{Style.RESET_ALL}")
     finally:
-        input(f"\n{Fore.CYAN}Premi INVIO per continuare...{Style.RESET_ALL}")
+        await prompt_for_input("Premi INVIO per continuare...")
 
-def profile_email_cli(cli_instance: 'ScraperCLI'):
+async def profile_email_cli(cli_instance: 'ScraperCLI'):
+    import asyncio
     '''Gestisce l'interazione CLI per profilare un indirizzo email utilizzando strumenti OSINT.'''
-    email_input = prompt_for_input("Inserisci l'indirizzo email da analizzare: ").strip()
+    email_input = (await prompt_for_input("Inserisci l'indirizzo email da analizzare: ")).strip()
     if not validators.email(email_input):
         print(f"{Fore.RED}✗ Email non valida")
         return
@@ -140,7 +142,7 @@ def profile_email_cli(cli_instance: 'ScraperCLI'):
 
     try:
         try:
-            profile_result = cli_instance.osint_extractor.profile_email(email_input)
+            profile_result = await asyncio.to_thread(cli_instance.osint_extractor.profile_email, email_input)
         except KeyboardInterrupt:
             print(f"\n{Fore.YELLOW}Operazione annullata dall'utente.{Style.RESET_ALL}")
             return
@@ -149,9 +151,9 @@ def profile_email_cli(cli_instance: 'ScraperCLI'):
             cli_instance.osint_extractor._display_osint_profile(profile_result, email_input)
             cli_instance.osint_extractor._offer_additional_actions(profile_result, email_input)
 
-            action_choice = prompt_for_input("Seleziona un'opzione (1-2): ").strip()
+            action_choice = (await prompt_for_input("Seleziona un'opzione (1-2): ")).strip()
             if action_choice == '1':
-                export_osint_profile_cli(cli_instance, profile_data=profile_result)
+                await export_osint_profile_cli(cli_instance, profile_data=profile_result)
             elif action_choice == '2':
                 pass
             else:
@@ -165,7 +167,7 @@ def profile_email_cli(cli_instance: 'ScraperCLI'):
         logger.error(f"Error during email profiling: {e}", exc_info=True)
         print(f"{Fore.RED}✗ Errore durante la profilazione: {e}{Style.RESET_ALL}")
 
-def profile_username_cli(cli_instance: 'ScraperCLI'):
+async def profile_username_cli(cli_instance: 'ScraperCLI'):
     '''
     Funzione: profile_username_cli
     Gestisce l'interazione CLI per ricercare username sui social media utilizzando Sherlock.
@@ -228,13 +230,13 @@ def profile_username_cli(cli_instance: 'ScraperCLI'):
     finally:
         input(f"\n{Fore.CYAN}Premi INVIO per continuare...{Style.RESET_ALL}")
 
-def show_osint_profiles_cli(cli_instance: 'ScraperCLI'):
+async def show_osint_profiles_cli(cli_instance: 'ScraperCLI'):
     '''Mostra un sommario dei profili OSINT salvati nel database tramite CLI. Permette anche di visualizzare l'analisi di un profilo selezionato.'''
-    show_osint_tables(cli_instance, profile_data=None)  # Mostra i profili OSINT salvati
+    await show_osint_tables(cli_instance, profile_data=None)  # Mostra i profili OSINT salvati
 
 
     # Prompt to view a profile's analysis
-    id_input = prompt_for_input("\nInserisci l'ID del profilo da visualizzare (INVIO per tornare): ").strip()
+    id_input = (await prompt_for_input("\nInserisci l'ID del profilo da visualizzare (INVIO per tornare): ")).strip()
     if not id_input or id_input == '0':
         return
     try:
@@ -248,16 +250,17 @@ def show_osint_profiles_cli(cli_instance: 'ScraperCLI'):
         return
     print(f"\n{Fore.CYAN}--- ANALISI PROFILO OSINT ID {profile_id} ---{Style.RESET_ALL}")
     cli_instance.osint_extractor._display_osint_profile(profile, profile.get('entity', {}).get('name', str(profile_id)))
-    input(f"\n{Fore.CYAN}Premi INVIO per continuare...{Style.RESET_ALL}")
+    await prompt_for_input("Premi INVIO per continuare...")
 
 
     
-def anlyze_existing_profile_cli(cli_instance: 'ScraperCLI'):
+async def anlyze_existing_profile_cli(cli_instance: 'ScraperCLI'):
+    import asyncio
     '''Gestisce l'interazione CLI per rieseguire analisi su un profilo OSINT esistente.'''
     
-    show_osint_tables(cli_instance, profile_data=None)  # Mostra i profili OSINT salvati
+    await show_osint_tables(cli_instance, profile_data=None)  # Mostra i profili OSINT salvati
     try:
-        id_input = prompt_for_input("Inserisci l'ID del target da analizzare: ")
+        id_input = await prompt_for_input("Inserisci l'ID del target da analizzare: ")
         profile_id = int(id_input)
     except ValueError:
         print(f"{Fore.RED}✗ Valore errato, inserire un numero intero.{Style.RESET_ALL}")
@@ -283,7 +286,7 @@ def anlyze_existing_profile_cli(cli_instance: 'ScraperCLI'):
     print(f"{Fore.YELLOW}2.{Style.RESET_ALL} Social-scan (solo se il profilo ha un username o nome associato)")
     print(f"{Fore.YELLOW}3.{Style.RESET_ALL} Sottodomini (solo se il profilo ha un dominio associato)")
     print(f"{Fore.YELLOW}0.{Style.RESET_ALL} Annulla")
-    choice_input = prompt_for_input("Scelta: ").strip()
+    choice_input = (await prompt_for_input("Scelta: ")).strip()
 
     if choice_input == '1':
         if has_email:
@@ -291,7 +294,7 @@ def anlyze_existing_profile_cli(cli_instance: 'ScraperCLI'):
             email = next(c['value'] for c in contacts if c.get('contact_type') == 'email')
             print(f"{Fore.YELLOW}Rieseguendo scansione email per {email}...{Style.RESET_ALL}")
             # Effettuo di nuovo il check email
-            cli_instance.osint_extractor.profile_email(email, force_recheck=True)
+            await asyncio.to_thread(cli_instance.osint_extractor.profile_email, email, force_recheck=True)
             print(f"{Fore.YELLOW}Check email completato. Visualizza il profilo aggiornato per vedere i cambiamenti.{Style.RESET_ALL}")
         else:
             print(f"{Fore.YELLOW}⚠ Il profilo non ha un'email associata per rieseguire il check.{Style.RESET_ALL}")
@@ -300,7 +303,7 @@ def anlyze_existing_profile_cli(cli_instance: 'ScraperCLI'):
             # Prendo il nome associato al profilo
             username = entity.get('name')
             print(f"{Fore.YELLOW}Rieseguendo scansione social per {username}...{Style.RESET_ALL}")
-            cli_instance.osint_extractor.profile_username(username, force_recheck=True)
+            await asyncio.to_thread(cli_instance.osint_extractor.profile_username, username, force_recheck=True)
             print(f"{Fore.YELLOW}Check social completato. Visualizza il profilo aggiornato per vedere i cambiamenti.{Style.RESET_ALL}")
         else:
             print(f"{Fore.YELLOW}⚠ Il profilo non ha un nome/username associato per rieseguire il check social.{Style.RESET_ALL}")
@@ -309,7 +312,7 @@ def anlyze_existing_profile_cli(cli_instance: 'ScraperCLI'):
             # Prendo il dominio associato al profilo
             domain = entity.get('domain')
             print(f"{Fore.YELLOW}Rieseguendo scansione sottodomini per {domain}...{Style.RESET_ALL}")
-            cli_instance.osint_extractor.profile_domain(domain, force_recheck=True)
+            await asyncio.to_thread(cli_instance.osint_extractor.profile_domain, domain, force_recheck=True)
             print(f"{Fore.YELLOW}Check sottodomini completato. Visualizza il profilo aggiornato per vedere i cambiamenti.{Style.RESET_ALL}")
         else:
             print(f"{Fore.YELLOW}⚠ Il profilo non ha un dominio associato per rieseguire il check sottodomini.{Style.RESET_ALL}")
@@ -318,12 +321,12 @@ def anlyze_existing_profile_cli(cli_instance: 'ScraperCLI'):
     else:
         print(f"{Fore.RED}✗ Scelta non valida.{Style.RESET_ALL}")
 
-def export_osint_profile_cli(cli_instance: 'ScraperCLI', profile_data: dict = None) -> None:
+async def export_osint_profile_cli(cli_instance: 'ScraperCLI', profile_data: dict = None) -> None:
     '''Esporta i dati di un profilo OSINT in formato scelto (JSON, HTML, PDF, Tutti).'''
     try:
         if profile_data is None:
             # Se non viene fornito un profilo, chiedi l'ID
-            id_input = prompt_for_input("Inserisci l'ID del profilo da esportare: ")
+            id_input = await prompt_for_input("Inserisci l'ID del profilo da esportare: ")
             try:
                 profile_id = int(id_input)
                 profile_data = cli_instance.osint_extractor.get_osint_profile_by_id(profile_id)
@@ -339,7 +342,7 @@ def export_osint_profile_cli(cli_instance: 'ScraperCLI', profile_data: dict = No
         osint_dir = cli_instance.dirs["osint_exports"]
         pdf_dir = cli_instance.dirs["pdf_reports"]
 
-        export_choice = export_menu()
+        export_choice = await export_menu()
         if export_choice == "0":
             print("Esportazione annullata.")
             return

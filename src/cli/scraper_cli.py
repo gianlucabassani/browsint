@@ -137,7 +137,7 @@ class ScraperCLI:
 
             while self.running:
                 try:
-                    choice = self.display_main_menu()
+                    choice = await self.display_main_menu()
                     await self._handle_main_menu_choice(choice)
                 except KeyboardInterrupt:
                     print(f"\n{Fore.YELLOW}Grazie per aver usato Browsint! Arrivederci!{Style.RESET_ALL}")
@@ -152,7 +152,7 @@ class ScraperCLI:
             if self._web_fetcher is not None:
                 await self._web_fetcher.close()
 
-    def display_main_menu(self) -> str:
+    async def display_main_menu(self) -> str:
         '''Visualizza il menu principale e restituisce la scelta dell'utente.'''
         print(f"{Fore.BLUE}{'═' * 40}")
         print(f"█ {Fore.WHITE}{'BROWSINT - MENU PRINCIPALE':^36}{Fore.BLUE} █")
@@ -162,53 +162,65 @@ class ScraperCLI:
         print(f"{Fore.YELLOW}3.{Style.RESET_ALL} Profilazione OSINT")
         print(f"{Fore.YELLOW}4.{Style.RESET_ALL} Opzioni di sistema\n")
         print(f"{Fore.YELLOW}0.{Style.RESET_ALL} Esci")
-        return prompt_for_input(f"{Fore.CYAN}Scelta: {Style.RESET_ALL}")
+        return await prompt_for_input(f"{Fore.CYAN}Scelta: {Style.RESET_ALL}")
     
     async def _handle_main_menu_choice(self, choice: str):
         '''Gestisce la scelta dell'utente nel menu principale.'''
         match choice:
             case "1": await self._download_websites_menu()
             case "2": await self._scrape_crawl_websites_menu()
-            case "3": self._osint_menu()
-            case "4": self._options_menu()
+            case "3": await self._osint_menu()
+            case "4": await self._options_menu()
             case "0":
                 print(f"\n{Fore.YELLOW}Grazie per aver usato Browsint! Arrivederci!{Style.RESET_ALL}")
                 self.running = False
             case _:
                 print(f"{Fore.RED}✗ Scelta non valida")
-                input(f"{Fore.CYAN}\nPremi INVIO per continuare...{Style.RESET_ALL}")
+                await prompt_for_input(f"{Fore.CYAN}\nPremi INVIO per continuare...{Style.RESET_ALL}")
 
     async def _download_websites_menu(self):
         '''Menu per il download di siti web.'''
         while True:
-            choice = download_menu.display_download_menu()
-            if choice == "0":
-                break
-            await download_menu.handle_download_choice(self, choice)
+            try:
+                choice = await download_menu.display_download_menu()
+                if choice == "0":
+                    break
+                await download_menu.handle_download_choice(self, choice)
+            except KeyboardInterrupt:
+                continue
 
     async def _scrape_crawl_websites_menu(self):
         '''Menu per lo scraping e crawling di siti web.'''
         while True:
-            choice = scraping_menu.display_scraping_menu()
-            if choice == "0":
-                break
-            await scraping_menu.handle_scraping_choice(self, choice)
+            try:
+                choice = await scraping_menu.display_scraping_menu()
+                if choice == "0":
+                    break
+                await scraping_menu.handle_scraping_choice(self, choice)
+            except KeyboardInterrupt:
+                continue
 
-    def _osint_menu(self):
+    async def _osint_menu(self):
         '''Menu per le funzionalità OSINT.'''
         while True:
-            choice = osint_menu.display_osint_menu()
-            if choice == "0":
-                break
-            osint_menu.handle_osint_choice(self, choice)
+            try:
+                choice = await osint_menu.display_osint_menu()
+                if choice == "0":
+                    break
+                await osint_menu.handle_osint_choice(self, choice)
+            except KeyboardInterrupt:
+                continue
 
-    def _options_menu(self):
+    async def _options_menu(self):
         '''Menu per le opzioni di sistema.'''
         while True:
-            choice = db_menu.display_db_menu()
-            if choice == "0":
-                break
-            db_menu.handle_db_choice(self, choice)
+            try:
+                choice = await db_menu.display_db_menu()
+                if choice == "0":
+                    break
+                await db_menu.handle_db_choice(self, choice)
+            except KeyboardInterrupt:
+                continue
     
     # Lazy-loaded components to avoid eager heavy instantiation
     @property
@@ -261,12 +273,11 @@ class ScraperCLI:
     def crawler(self, value):
         self._crawler = value
     
-            
-    def _get_validated_url_input(self, prompt_message: str) -> Optional[str]:
+    async def _get_validated_url_input(self, prompt_message: str) -> Optional[str]:
         '''
         Ottiene e valida un input URL.
         '''
-        url = prompt_for_input(prompt_message)
+        url = await prompt_for_input(prompt_message)
         if not url:
             print(f"{Fore.RED}✗ L'URL non può essere vuoto.{Style.RESET_ALL}")
             return None
@@ -275,11 +286,11 @@ class ScraperCLI:
             return None
         return url
 
-    def _get_depth_input(self, default: int = 2, message: str = None) -> int:
+    async def _get_depth_input(self, default: int = 2, message: str = None) -> int:
         '''
         Ottiene e valida un input di profondità di crawl.
         '''
         if message is None:
             message = f"Inserisci il limite di profondità (default: {default}): "
-        depth_str = prompt_for_input(message)
+        depth_str = await prompt_for_input(message)
         return int(depth_str) if depth_str.isdigit() else default
