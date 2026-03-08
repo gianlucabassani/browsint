@@ -1,0 +1,19 @@
+.git
+.gitignore
+.venv
+venv
+env
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.db
+*.sqlite3
+
+# Env vars
+.env
+
+# Data and Cache
+data/
+.osint_cache/

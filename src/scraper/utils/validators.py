@@ -32,7 +32,7 @@ def validate_domain(domain: str) -> tuple[bool, str | None]:
 
         domain_pattern = r"^((?!-)[a-z0-9-]{1,63}(?<!-)\.)+[a-z]{2,63}$"
 
-        '''
+        r'''
         Il pattern regex verifica che il dominio:
         ^((?!-) - Non inizi con un trattino
         [a-z0-9-]{1,63} - Contenga solo lettere minuscole, numeri e trattini, con una lunghezza da 1 a 63 caratteri

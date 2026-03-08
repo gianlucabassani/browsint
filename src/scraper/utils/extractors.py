@@ -20,7 +20,7 @@ def extract_emails(text: str) -> set:
     '''
     email_pattern = r'\b[A-Za-z0-9][A-Za-z0-9._%+-]{1,64}@(?:[A-Za-z0-9-]{1,63}\.){1,8}[A-Za-z]{2,63}\b' 
     
-    '''
+    r'''
     Pattern regex per identificare indirizzi email:
     - \b[A-Za-z0-9][A-Za-z0-9._%+-]{1,64} - Inizia con un carattere alfanumerico seguito da uno o più caratteri alfanumerici, punti, trattini o underscore
     - @ - Segue il simbolo @
@@ -107,7 +107,7 @@ def filter_emails(emails: Set[str], domain: str, logger: logging.Logger, keep_se
     uuid_pattern = re.compile(r'^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$', re.IGNORECASE)
     long_hex_pattern = re.compile(r'^[0-9a-f]{12,64}$', re.IGNORECASE)
 
-    '''
+    r'''
     Pattern regex per identificare local part che sembrano UUID o lunghe stringhe esadecimali:
     - ^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$:
         - Inizia con 8 caratteri esadecimali, seguiti da un trattino opzionale
@@ -280,7 +280,7 @@ def filter_phone_numbers(phone_numbers: set) -> set:
         r'^(19|20)\d{2}\d{4}$'
     ]
 
-    ''' 
+    r''' 
     Pattern regex per identificare date in formato:
     - ^20\d{6}$: Anno 20xx seguito da 6 cif
     - ^\d{8}$: 8 cifre consecutive (potrebbe essere una data)
@@ -295,7 +295,7 @@ def filter_phone_numbers(phone_numbers: set) -> set:
     '''
     ip_pattern = r'^\d{1,3}(\.\d{1,3}){3}$'
 
-    '''
+    r'''
     Pattern regex per identificare indirizzi IP:
     - ^\d{1,3}(\.\d{1,3}){3}$:
         - Inizia con 1-3 cifre, seguite da un punto e altre 1-3 cifre, ripetuto 3 volte
@@ -303,7 +303,7 @@ def filter_phone_numbers(phone_numbers: set) -> set:
     '''
     sequential_pattern = r'^(?:0(?=1)|1(?=2)|2(?=3)|3(?=4)|4(?=5)|5(?=6)|6(?=7)|7(?=8)|8(?=9)){5,}\d$'
     
-    '''
+    r'''
     Pattern regex per identificare sequenze numeriche:
     - ^(?:0(?=1)|1(?=2)|2(?=3)|3(?=4)|4(?=5)|5(?=6)|6(?=7)|7(?=8)|8(?=9)){5,}\d$:
         - Cattura sequenze numeriche in cui ogni cifra è seguita dalla successiva

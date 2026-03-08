@@ -1,0 +1,13 @@
+services:
+  browsint:
+    build: .
+    container_name: browsint
+    stdin_open: true # Allocate a pseudo-TTY for the interactive CLI
+    tty: true        # Keep STDIN open even if not attached
+    environment:
+      - PYTHONPATH=/app/src
+    volumes:
+      - ./data:/app/data
+      - ./.osint_cache:/app/.osint_cache
+      # You can mount .env if you use environment variables for API keys
+      - ./.env:/app/.env
