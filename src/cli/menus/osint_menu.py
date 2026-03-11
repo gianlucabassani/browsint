@@ -105,7 +105,7 @@ async def profile_domain_cli(cli_instance: 'ScraperCLI'):
 
     try:
         try:
-            profile = await asyncio.to_thread(cli_instance.osint_extractor.profile_domain, domain)
+            profile = await cli_instance.osint_extractor.profile_domain(domain)
         except KeyboardInterrupt:
             print(f"\n{Fore.YELLOW}Operazione annullata dall'utente.{Style.RESET_ALL}")
             return
@@ -142,7 +142,7 @@ async def profile_email_cli(cli_instance: 'ScraperCLI'):
 
     try:
         try:
-            profile_result = await asyncio.to_thread(cli_instance.osint_extractor.profile_email, email_input)
+            profile_result = await cli_instance.osint_extractor.profile_email(email_input)
         except KeyboardInterrupt:
             print(f"\n{Fore.YELLOW}Operazione annullata dall'utente.{Style.RESET_ALL}")
             return
@@ -294,7 +294,7 @@ async def anlyze_existing_profile_cli(cli_instance: 'ScraperCLI'):
             email = next(c['value'] for c in contacts if c.get('contact_type') == 'email')
             print(f"{Fore.YELLOW}Rieseguendo scansione email per {email}...{Style.RESET_ALL}")
             # Effettuo di nuovo il check email
-            await asyncio.to_thread(cli_instance.osint_extractor.profile_email, email, force_recheck=True)
+            await cli_instance.osint_extractor.profile_email(email, force_recheck=True)
             print(f"{Fore.YELLOW}Check email completato. Visualizza il profilo aggiornato per vedere i cambiamenti.{Style.RESET_ALL}")
         else:
             print(f"{Fore.YELLOW}⚠ Il profilo non ha un'email associata per rieseguire il check.{Style.RESET_ALL}")
@@ -312,7 +312,7 @@ async def anlyze_existing_profile_cli(cli_instance: 'ScraperCLI'):
             # Prendo il dominio associato al profilo
             domain = entity.get('domain')
             print(f"{Fore.YELLOW}Rieseguendo scansione sottodomini per {domain}...{Style.RESET_ALL}")
-            await asyncio.to_thread(cli_instance.osint_extractor.profile_domain, domain, force_recheck=True)
+            await cli_instance.osint_extractor.profile_domain(domain, force_recheck=True)
             print(f"{Fore.YELLOW}Check sottodomini completato. Visualizza il profilo aggiornato per vedere i cambiamenti.{Style.RESET_ALL}")
         else:
             print(f"{Fore.YELLOW}⚠ Il profilo non ha un dominio associato per rieseguire il check sottodomini.{Style.RESET_ALL}")

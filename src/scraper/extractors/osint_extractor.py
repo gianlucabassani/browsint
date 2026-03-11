@@ -53,7 +53,7 @@ class OSINTExtractor:
         self.dirs = dirs or {}
 
 # GESTIONE DI OGNI OGGETTO ANALIZZATO
-    def entity(self, target: str, entity_type: str) -> dict[str, Any]:
+    async def entity(self, target: str, entity_type: str) -> dict[str, Any]:
        '''
        Funzione: entity
        Coordina l'estrazione dei dati OSINT per una specifica entità (dominio, email, username) da tutte le fonti configurate.
@@ -73,11 +73,11 @@ class OSINTExtractor:
 
        if entity_type == "domain":
            self.logger.debug(f"Processing domain data for {target}")
-           data_to_save = fetch_domain_osint(target, api_keys=self.api_keys, logger=self.logger) # scansione dominio
+           data_to_save = await fetch_domain_osint(target, api_keys=self.api_keys, logger=self.logger) # scansione dominio
            source_type_for_saving = "domain"
        elif entity_type == "email":
            self.logger.debug(f"Processing email data for {target}")
-           data_to_save = fetch_email_osint(target, api_keys=self.api_keys, logger=self.logger) # scansione email
+           data_to_save = await fetch_email_osint(target, api_keys=self.api_keys, logger=self.logger) # scansione email
            source_type_for_saving = "email"
        elif entity_type == "username":
            self.logger.debug(f"Processing username social scan for {target}")
@@ -571,7 +571,7 @@ class OSINTExtractor:
         self.logger.debug(f"Attempting to retrieve full profile for entity ID: '{entity_id}'")
         return self._build_full_profile(entity_id) # chiama il metodo per costruire il profilo completo
 
-    def profile_domain(self, domain: str, force_recheck: bool = False) -> dict[str, Any]:
+    async def profile_domain(self, domain: str, force_recheck: bool = False) -> dict[str, Any]:
         '''
         Avvia il processo di profilazione OSINT per un dominio web.
         Valida l'input e delega al metodo entity.
@@ -592,10 +592,10 @@ class OSINTExtractor:
 
         self.logger.info(f"Profiling clean domain: {clean_domain}")
         # Chiama il metodo entity per gestire il flusso di lavoro 
-        return self.entity(clean_domain, "domain")
+        return await self.entity(clean_domain, "domain")
 
     # Metodo pubblico chiamato dalla CLI per profilare un indirizzo email
-    def profile_email(self, email: str) -> dict[str, Any]:
+    async def profile_email(self, email: str) -> dict[str, Any]:
         '''
         Avvia il processo di profilazione OSINT per un indirizzo email.
         Delega al metodo entity.
@@ -621,10 +621,10 @@ class OSINTExtractor:
             self.logger.warning(f"Email format validation failed for: {email}")
             return {"error": "Invalid email format provided.", "original_input": email}
 
-        return self.entity(email, "email")
+        return await self.entity(email, "email")
 
     # Metodo pubblico chiamato dalla CLI per profilare un username
-    def profile_username(self, username: str) -> dict[str, Any]:
+    def profile_username(self, username: str, force_recheck: bool = False) -> dict[str, Any]:
         '''
         Funzione: profile_username
         Esegue una scansione della presenza di un username su piattaforme social.

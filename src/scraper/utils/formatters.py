@@ -398,32 +398,41 @@ def format_domain_osint_report(data: Dict[str, Any], target_input: str, domain_a
 
     # Informazioni WHOIS
     whois_content = []
-    whois_content.append(f"{DATA_BLUE}  ┌─ Nome Dominio:{Style.RESET_ALL}      {TEXT_WHITE}{whois_data.get('domain_name', 'N/A')}{Style.RESET_ALL}")
-    whois_content.append(f"{DATA_BLUE}  ├─ Registrar:{Style.RESET_ALL}         {TEXT_WHITE}{whois_data.get('registrar', 'N/A')}{Style.RESET_ALL}")
-    whois_content.append(f"{DATA_BLUE}  ├─ Data Creazione:{Style.RESET_ALL}    {TEXT_WHITE}{whois_data.get('creation_date', 'N/A')}{Style.RESET_ALL}")
-    whois_content.append(f"{DATA_BLUE}  ├─ Data Scadenza:{Style.RESET_ALL}     {TEXT_WHITE}{whois_data.get('expiration_date', 'N/A')}{Style.RESET_ALL}")
-    whois_content.append(f"{DATA_BLUE}  └─ Ultimo Aggiorn.:{Style.RESET_ALL}   {TEXT_WHITE}{whois_data.get('last_updated', 'N/A')}{Style.RESET_ALL}")
-    
-    status = whois_data.get("status", [])
-    if status:
-        whois_content.append(f"{DATA_BLUE}  ┌─ Stato Dominio:{Style.RESET_ALL}     {TEXT_WHITE}{', '.join(status)}{Style.RESET_ALL}")
-        whois_content.append(f"{DATA_BLUE}  └─{Style.RESET_ALL} {Fore.CYAN}(Tipico per protezione da trasferimenti indesiderati){Style.RESET_ALL}")
+    if "raw" in whois_data and whois_data.get("registrar", "N/A") == "N/A":
+        whois_content.append(f"{WARNING_BLUE}  ┌─ Formato WHOIS grezzo (Fallito parsing strutturato):{Style.RESET_ALL}")
+        raw_lines = [line.strip() for line in whois_data["raw"].splitlines() if line.strip()]
+        for idx, line in enumerate(raw_lines[:30]):
+             prefix = "├─" if idx < min(len(raw_lines), 30) - 1 else "└─"
+             whois_content.append(f"{DATA_BLUE}  {prefix} {TEXT_WHITE}{line[:110]}{Style.RESET_ALL}")
+        if len(raw_lines) > 30:
+             whois_content.append(f"{DATA_BLUE}  └─ {Fore.CYAN}(... {len(raw_lines)-30} righe aggiuntive omesse ...){Style.RESET_ALL}")
     else:
-        whois_content.append(f"{DATA_BLUE}  └─ Stato Dominio:{Style.RESET_ALL}     {Fore.RED}N/A{Style.RESET_ALL}")
+        whois_content.append(f"{DATA_BLUE}  ┌─ Nome Dominio:{Style.RESET_ALL}      {TEXT_WHITE}{whois_data.get('domain_name', 'N/A')}{Style.RESET_ALL}")
+        whois_content.append(f"{DATA_BLUE}  ├─ Registrar:{Style.RESET_ALL}         {TEXT_WHITE}{whois_data.get('registrar', 'N/A')}{Style.RESET_ALL}")
+        whois_content.append(f"{DATA_BLUE}  ├─ Data Creazione:{Style.RESET_ALL}    {TEXT_WHITE}{whois_data.get('creation_date', 'N/A')}{Style.RESET_ALL}")
+        whois_content.append(f"{DATA_BLUE}  ├─ Data Scadenza:{Style.RESET_ALL}     {TEXT_WHITE}{whois_data.get('expiration_date', 'N/A')}{Style.RESET_ALL}")
+        whois_content.append(f"{DATA_BLUE}  └─ Ultimo Aggiorn.:{Style.RESET_ALL}   {TEXT_WHITE}{whois_data.get('last_updated', 'N/A')}{Style.RESET_ALL}")
+        
+        status = whois_data.get("status", [])
+        if status:
+            whois_content.append(f"{DATA_BLUE}  ┌─ Stato Dominio:{Style.RESET_ALL}     {TEXT_WHITE}{', '.join(status)}{Style.RESET_ALL}")
+            whois_content.append(f"{DATA_BLUE}  └─{Style.RESET_ALL} {Fore.CYAN}(Tipico per protezione da trasferimenti indesiderati){Style.RESET_ALL}")
+        else:
+            whois_content.append(f"{DATA_BLUE}  └─ Stato Dominio:{Style.RESET_ALL}     {Fore.RED}N/A{Style.RESET_ALL}")
 
-    organization_display = whois_data.get('organization', 'N/A')
-    if "contact privacy" in organization_display.lower() or "proxy" in organization_display.lower():
-        organization_display = f"{organization_display} {Fore.CYAN}⚠️ (PRIVACY ATTIVA: Dettagli proprietario nascosti){Style.RESET_ALL}"
-    whois_content.append(f"{DATA_BLUE}  └─ Organization:{Style.RESET_ALL}      {TEXT_WHITE}{organization_display}{Style.RESET_ALL}")
+        organization_display = whois_data.get('organization', 'N/A')
+        if "contact privacy" in organization_display.lower() or "proxy" in organization_display.lower():
+            organization_display = f"{organization_display} {Fore.CYAN}⚠️ (PRIVACY ATTIVA: Dettagli proprietario nascosti){Style.RESET_ALL}"
+        whois_content.append(f"{DATA_BLUE}  └─ Organization:{Style.RESET_ALL}      {TEXT_WHITE}{organization_display}{Style.RESET_ALL}")
 
-    emails = whois_data.get("emails", [])
-    if emails:
-        whois_content.append(f"{DATA_BLUE}  └─ Emails di Contatto WHOIS:{Style.RESET_ALL}")
-        for i, email in enumerate(emails):
-            prefix = "├─" if i < len(emails) - 1 else "└─"
-            whois_content.append(f"{DATA_BLUE}     {prefix} {TEXT_WHITE}{email}{Style.RESET_ALL}")
-    else:
-        whois_content.append(f"{DATA_BLUE}  └─ Emails di Contatto WHOIS:{Style.RESET_ALL} {Fore.RED}Nessuna trovata{Style.RESET_ALL}")
+        emails = whois_data.get("emails", [])
+        if emails:
+            whois_content.append(f"{DATA_BLUE}  └─ Emails di Contatto WHOIS:{Style.RESET_ALL}")
+            for i, email in enumerate(emails):
+                prefix = "├─" if i < len(emails) - 1 else "└─"
+                whois_content.append(f"{DATA_BLUE}     {prefix} {TEXT_WHITE}{email}{Style.RESET_ALL}")
+        else:
+            whois_content.append(f"{DATA_BLUE}  └─ Emails di Contatto WHOIS:{Style.RESET_ALL} {Fore.RED}Nessuna trovata{Style.RESET_ALL}")
     
     report_parts.extend(create_section_box("INFORMAZIONI WHOIS", whois_content))
     report_parts.append("")

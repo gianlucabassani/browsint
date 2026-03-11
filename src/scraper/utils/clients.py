@@ -34,26 +34,35 @@ def _safe_get(url: str, *, headers: dict | None = None, timeout: int = 10, max_r
             logger.debug(f"Request to {url} failed (attempt {attempt}/{max_retries}), retrying in {sleep_time}s: {e}")
             time.sleep(sleep_time)
 
+async def _async_safe_get(*args, **kwargs):
+    import asyncio
+    return await asyncio.to_thread(_safe_get, *args, **kwargs)
+
 
 # === Wayback Machine Client ===
-def fetch_wayback_snapshots(url: str, limit: int = 5) -> Dict [str, Any]:
+async def fetch_wayback_snapshots(url: str, limit: int = 5) -> Dict [str, Any]:
     '''
     Funzione: fetch_wayback_snapshots
-    Recupera una lista degli ultimi snapshot da Wayback Machine per un dato URL.
+    Recupera una lista degli ultimi snapshot da Wayback Machine per un dato URL in modo asincrono.
     Parametri formali:
         url: L'URL per cui cercare gli snapshot
         limit: Il numero massimo di snapshot da recuperare (default 5)
     Valore di ritorno:
         dict[str, Any] -> Un dizionario contenente i dati degli snapshot o un messaggio di errore
     '''
+    import asyncio
 
     try:
         logger.debug(f"Fetching Wayback Machine snapshots for URL: {url} with limit {limit}")
         print(f"Cercando snapshot per {url} con limite {limit}...")  # Per debug
 
-        cdx_api = WaybackMachineCDXServerAPI(url, user_agent="Browsint Research Bot")
-        cdx_api.limit = limit  # Imposta il limite di snapshot da recuperare
-        snapshots = cdx_api.snapshots()
+        def _fetch():
+            cdx_api = WaybackMachineCDXServerAPI(url, user_agent="Browsint Research Bot")
+            cdx_api.limit = limit  # Imposta il limite di snapshot da recuperare
+            return list(cdx_api.snapshots())
+
+        # Offload the blocking generator execution to a thread with a strict 10-second timeout
+        snapshots = await asyncio.wait_for(asyncio.to_thread(_fetch), timeout=10.0)
 
         if not snapshots:
             logger.info(f"No snapshots found for {url}.")
@@ -72,12 +81,15 @@ def fetch_wayback_snapshots(url: str, limit: int = 5) -> Dict [str, Any]:
             })
 
             print(f"Trovato snapshot numero {len(results)}:{s.archive_url}")
-            if len(results) > 5:
+            if len(results) >= limit:
                 break
 
         logger.debug(f"Found {len(results)} snapshots for {url}.")
         return {"snapshots": results}
 
+    except asyncio.TimeoutError:
+        logger.warning(f"Timeout fetching Wayback Machine data for {url} after 10 seconds.")
+        return {"error": f"Timeout durante la ricerca su Wayback Machine. Il server è troppo lento."}
     except requests.exceptions.RequestException as e:
         logger.warning(f"Network error fetching Wayback Machine data for {url}: {e}")
         return {"error": f"Si è verificato un errore di rete durante il lookup su Wayback Machine: {e}"}
@@ -87,7 +99,7 @@ def fetch_wayback_snapshots(url: str, limit: int = 5) -> Dict [str, Any]:
     
 
 # === Hunter.io Client ===
-def fetch_hunterio(email: str, api_key: Optional[str]) -> Dict[str, Any]:
+async def fetch_hunterio(email: str, api_key: Optional[str]) -> Dict[str, Any]:
     '''
     Funzione: _fetch_hunterio
     Recupera informazioni su un indirizzo email dall'API di Hunter.io.
@@ -104,7 +116,7 @@ def fetch_hunterio(email: str, api_key: Optional[str]) -> Dict[str, Any]:
     try:
         logger.debug(f"Fetching Hunter.io data for {email}")
         url = f"https://api.hunter.io/v2/email-verifier?email={email}&api_key={api_key}"
-        response = _safe_get(url, timeout=10)
+        response = await _async_safe_get(url, timeout=10)
         response.raise_for_status()  # Solleva un'eccezione per status codes 4xx/5xx
         
         if response.text:
@@ -135,7 +147,7 @@ def fetch_hunterio(email: str, api_key: Optional[str]) -> Dict[str, Any]:
         return {"error": f"Unexpected API error during Hunter.io fetch: {str(e)}"}
 
 # === Have I Been Pwned (HIBP) Client ===
-def check_email_breaches(email: str, api_key: Optional[str]) -> List[Dict[str, Any]]:
+async def check_email_breaches(email: str, api_key: Optional[str]) -> List[Dict[str, Any]]:
     '''
     Funzione: _check_email_breaches
     Controlla se un indirizzo email è apparso in data breach noti utilizzando l'API di Have I Been Pwned (HIBP).
@@ -151,7 +163,7 @@ def check_email_breaches(email: str, api_key: Optional[str]) -> List[Dict[str, A
 
     try:
         logger.debug(f"Checking HIBP for breaches for email: {email}")
-        response = _safe_get(
+        response = await _async_safe_get(
             f"https://haveibeenpwned.com/api/v3/breachedaccount/{email.strip()}",
             headers={"hibp-api-key": api_key, "User-Agent": "BrowsintOSINTTool/1.0"},
             timeout=15,
@@ -186,7 +198,7 @@ def check_email_breaches(email: str, api_key: Optional[str]) -> List[Dict[str, A
         return []
 
 # === WHOIS Client ===
-def fetch_whois(target: str) -> Dict[str, Any]:
+async def fetch_whois(target: str) -> Dict[str, Any]:
     '''
     Funzione: _fetch_whois
     Recupera i dati WHOIS di un dominio o indirizzo IP utilizzando la libreria python-whois o ipwhois.
@@ -206,10 +218,11 @@ def fetch_whois(target: str) -> Dict[str, Any]:
 
         if is_ip:
             from ipwhois import IPWhois
+            import asyncio
             logger.debug(f"Fetching IP WHOIS data for: {target}")
             
             obj = IPWhois(target)
-            whois_info = obj.lookup_rdap(depth=1)
+            whois_info = await asyncio.to_thread(obj.lookup_rdap, depth=1)
             
             if not whois_info:
                 logger.warning(f"IP WHOIS lookup for {target} returned no data.")
@@ -242,8 +255,50 @@ def fetch_whois(target: str) -> Dict[str, Any]:
 
         else:
             import whois  # Importa qui per rendere la dipendenza da python-whois opzionale per il modulo
+            import asyncio
+            import subprocess
             logger.debug(f"Fetching domain WHOIS data for: {target}")
-            whois_info = whois.whois(target)
+            
+            whois_info = None
+            try:
+                # Tentativo 1: libreria python-whois con timeout molto stretto di 5 sec
+                whois_info = await asyncio.wait_for(asyncio.to_thread(whois.whois, target), timeout=5.0)
+            except asyncio.TimeoutError:
+                logger.warning(f"python-whois Timeout per {target}. Trying fallbacks.")
+            except Exception as e:
+                logger.warning(f"python-whois Native lookup failed: {e}. Trying fallbacks.")
+
+            if not whois_info:
+                # Tentativo 2: HTTP API fallback (Strutturato)
+                try:
+                    fb_url = f"https://networkcalc.com/api/dns/whois/{target}"
+                    resp = await _async_safe_get(fb_url, timeout=7)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        if data.get("status") == "OK" and data.get("whois"):
+                            logger.debug("Successfully fetched WHOIS via networkcalc API")
+                            w_data = data["whois"]
+                            return {
+                                "domain_name": target,
+                                "registrar": w_data.get("registrar"),
+                                "creation_date": w_data.get("registry_created_date"),
+                                "expiration_date": w_data.get("registry_expiration_date"),
+                                "status": [w_data.get("domain_status")] if w_data.get("domain_status") else [],
+                                "emails": [w_data.get("abuse_email")] if w_data.get("abuse_email") else [],
+                                "organization": w_data.get("registrant_organization", "N/A"),
+                            }
+                except Exception as api_e:
+                    logger.debug(f"API fallback failed: {api_e}")
+
+            if not whois_info:
+                # Tentativo 3: Fallback system 'whois' tool (Raw text)
+                try:
+                    result = await asyncio.to_thread(subprocess.run, ["whois", target], capture_output=True, text=True, timeout=10)
+                    if result.returncode == 0 and result.stdout:
+                        logger.debug("Successfully fetched WHOIS via system shell whois")
+                        return {"domain_name": target, "raw": result.stdout, "note": "Data fetched via system whois (unparsed)"}
+                except Exception as sub_e:
+                    logger.debug(f"System whois fallback failed: {sub_e}")
 
             if not whois_info:
                 logger.warning(f"WHOIS lookup for {target} returned no data.")
@@ -326,11 +381,11 @@ def fetch_whois(target: str) -> Dict[str, Any]:
             return processed_info
 
     except Exception as e:
-        logger.error(f"Error during WHOIS lookup for {target}: {e}", exc_info=True)
+        logger.warning(f"Error during WHOIS lookup for {target}: {e}")
         return {"error": f"WHOIS lookup failed: {str(e)}"}
 
 # === Shodan Client ===
-def fetch_shodan(ip_addresses: List[str], api_key: Optional[str]) -> Dict[str, Any]:
+async def fetch_shodan(ip_addresses: List[str], api_key: Optional[str]) -> Dict[str, Any]:
     '''
     Funzione: _fetch_shodan
     Recupera dati da Shodan per un dominio e i suoi indirizzi IP associati.        Parametri formali:
@@ -360,13 +415,14 @@ def fetch_shodan(ip_addresses: List[str], api_key: Optional[str]) -> Dict[str, A
     }
 
     try:
+        import asyncio
         logger.debug(f"Initializing Shodan API for IPs: {ip_addresses}")
         api = shodan.Shodan(api_key)
 
         for ip in ip_addresses:
             try:
                 logger.debug(f"Querying Shodan for IP: {ip}")
-                host_info = api.host(ip)
+                host_info = await asyncio.to_thread(api.host, ip)
                 results["data_by_ip"][ip] = host_info # Salva tutti i dati per quell'IP
 
                 # Aggiorna il riepilogo
@@ -406,7 +462,7 @@ def fetch_shodan(ip_addresses: List[str], api_key: Optional[str]) -> Dict[str, A
         return {"error": f"Unexpected Shodan client error: {str(e_main)}"}
 
 # === DNS Client ===
-def fetch_dns_records(domain: str) -> Dict[str, List[str]]:
+async def fetch_dns_records(domain: str) -> Dict[str, List[str]]:
     '''
     Funzione: _fetch_dns_records
     Recupera i record DNS per un dominio utilizzando la libreria dnspython.
@@ -418,7 +474,7 @@ def fetch_dns_records(domain: str) -> Dict[str, List[str]]:
     '''
     records: Dict[str, List[str]] = {}
     resolver = dns_resolver.Resolver()
-    resolver.nameservers = ['8.8.8.8', '1.1.1.1', '9.9.9.9'] # Google, Cloudflare, Quad9
+    # Usare il resolver di sistema per impostazione predefinita per evitare blocchi firewall sulla porta 53
     resolver.timeout = 3.0 # Timeout per singola query
     resolver.lifetime = 7.0 # Timeout totale per la risoluzione
 
@@ -426,10 +482,22 @@ def fetch_dns_records(domain: str) -> Dict[str, List[str]]:
     record_types = ["A", "AAAA", "MX", "NS", "TXT", "SOA", "CNAME", "SRV", "CAA", "PTR"] # PTR è più per IP ma lo includo
     logger.debug(f"Fetching DNS records for domain: {domain} (Types: {', '.join(record_types)})")
 
+    import asyncio
+
     for rtype in record_types:
         try:
             logger.debug(f"Querying {rtype} records for {domain}")
-            answers = resolver.resolve(domain, rtype)
+            
+            try:
+                answers = await asyncio.to_thread(resolver.resolve, domain, rtype)
+            except (dns_resolver.Timeout, dns_resolver.NoNameservers) as primary_err:
+                logger.debug(f"System DNS failed for {rtype} ({primary_err}). Falling back to public resolvers...")
+                fb_resolver = dns_resolver.Resolver(configure=False)
+                fb_resolver.nameservers = ['8.8.8.8', '1.1.1.1']
+                fb_resolver.timeout = 3.0
+                fb_resolver.lifetime = 7.0
+                answers = await asyncio.to_thread(fb_resolver.resolve, domain, rtype)
+                
             current_rtype_records = []
             if rtype == "MX":
                 current_rtype_records = sorted([f"{r.preference} {str(r.exchange).rstrip('.')}" for r in answers])

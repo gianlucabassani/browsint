@@ -53,7 +53,7 @@ def _parse_sherlock_stdout(stdout: str, username: str, include_username: bool = 
 # === Funzioni per Fetching Dati Dominio ===
 
 # Usato dal OSINTExtractor per raccogliere dati dominio/IP
-def fetch_domain_osint(target: str, api_keys: Dict[str, str], logger) -> dict[str, Any]:
+async def fetch_domain_osint(target: str, api_keys: Dict[str, str], logger) -> dict[str, Any]:
     '''
     Funzione: fetch_domain_osint
     Raccoglie dati OSINT per un dominio o IP da varie fonti (WHOIS, DNS, Shodan).
@@ -78,7 +78,7 @@ def fetch_domain_osint(target: str, api_keys: Dict[str, str], logger) -> dict[st
 
     # WHOIS
     logger.debug(f"Eseguo WHOIS lookup per {target}...")
-    whois_data = fetch_whois(target)
+    whois_data = await fetch_whois(target)
     if whois_data and not whois_data.get("error"):
         result["whois"] = whois_data
         logger.debug("WHOIS completato con successo.")
@@ -91,7 +91,7 @@ def fetch_domain_osint(target: str, api_keys: Dict[str, str], logger) -> dict[st
     if not is_ip:
         # DNS
         logger.debug(f"Eseguo DNS lookup per {target}...")
-        dns_data = fetch_dns_records(target)
+        dns_data = await fetch_dns_records(target)
         if dns_data and not dns_data.get("error"):
             result["dns"] = dns_data
             logger.debug("DNS completato con successo.")
@@ -108,7 +108,7 @@ def fetch_domain_osint(target: str, api_keys: Dict[str, str], logger) -> dict[st
 
                     if user_choice == 's':
                         logger.info(f"Eseguo Shodan lookup sugli IP: {resolved_ips}")
-                        shodan_data = fetch_shodan(resolved_ips, shodan_api_key)
+                        shodan_data = await fetch_shodan(resolved_ips, shodan_api_key)
                         if shodan_data and not shodan_data.get("error"):
                             result["shodan"] = shodan_data
                             logger.debug("Shodan completato con successo.")
@@ -138,7 +138,7 @@ def fetch_domain_osint(target: str, api_keys: Dict[str, str], logger) -> dict[st
 
             if user_choice == 's':
                 logger.info(f"Eseguo Shodan lookup per l'IP: {target}")
-                shodan_data = fetch_shodan([target], shodan_api_key)
+                shodan_data = await fetch_shodan([target], shodan_api_key)
                 if shodan_data and not shodan_data.get("error"):
                     result["shodan"] = shodan_data
                     logger.debug("Shodan completato con successo.")
@@ -153,7 +153,7 @@ def fetch_domain_osint(target: str, api_keys: Dict[str, str], logger) -> dict[st
 
      # === Wayback Machine ===
     if not is_ip:
-        wayback_data = fetch_wayback_snapshots(target)
+        wayback_data = await fetch_wayback_snapshots(target)
         if wayback_data and not wayback_data.get("error"):
             result["wayback_machine"] = wayback_data
             logger.debug("Wayback Machine completato con successo.")
@@ -172,7 +172,7 @@ def fetch_domain_osint(target: str, api_keys: Dict[str, str], logger) -> dict[st
 # === Funzioni per Fetching Dati Email ===
 
 # Usato dal OSINTExtractor per raccogliere dati email
-def fetch_email_osint(email: str, api_keys: Dict[str, str], logger) -> Dict[str, Any]:
+async def fetch_email_osint(email: str, api_keys: Dict[str, str], logger) -> Dict[str, Any]:
     '''
     Funzione: fetch_email_osint
     Processa l'estrazione di dati per un indirizzo email da varie fonti (Hunter.io, HIBP).
@@ -191,7 +191,7 @@ def fetch_email_osint(email: str, api_keys: Dict[str, str], logger) -> Dict[str,
     # Hunter.io lookup
     hunter_api_key = api_keys.get("hunterio")
     if hunter_api_key:
-        hunter_data = fetch_hunterio(email, hunter_api_key)
+        hunter_data = await fetch_hunterio(email, hunter_api_key)
         if hunter_data and not hunter_data.get("error"):
             result["hunterio"] = hunter_data
             logger.debug(f"Hunter.io data fetched for {email}")
@@ -206,7 +206,7 @@ def fetch_email_osint(email: str, api_keys: Dict[str, str], logger) -> Dict[str,
     # HIBP lookup
     hibp_api_key = api_keys.get("hibp")
     if hibp_api_key:
-        breaches_data = check_email_breaches(email, hibp_api_key)
+        breaches_data = await check_email_breaches(email, hibp_api_key)
         if breaches_data:
             result["breaches"] = breaches_data
             if not breaches_data:
