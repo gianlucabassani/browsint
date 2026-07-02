@@ -1,8 +1,21 @@
 # Browsint
 
+> ## 🗄️ ARCHIVED — succeeded by [gosint](../../gosint)
+>
+> **Browsint is no longer actively developed.** Its OSINT capabilities — the
+> entity/contact model and extraction pipeline — have been consolidated into
+> **[gosint](../../gosint)**, the Go successor (single static binary, concurrent
+> recon, unit-tested). This repository is kept for reference and **bugfix-only**.
+>
+> **Migrating your data:** import an existing Browsint database into gosint with
+> `gosint import-browsint <path-to-browsint.db>`.
+>
+> See [`NOTICE`](../NOTICE) and gosint's `.agent/proposals/CONSOLIDATION.md` for
+> the rationale and migration plan.
+
 ![Python Version](https://img.shields.io/badge/Python-3.9%2B-blue.svg)
 ![License](https://img.shields.io/badge/License-MIT-YELLOW.svg)
-![Status](https://img.shields.io/badge/Status-Beta-orange.svg)
+![Status](https://img.shields.io/badge/Status-Archived-lightgrey.svg)
 
 <img src="images/Browsint_LOGO.png" alt="Browsint Logo" width="350"/>
 
